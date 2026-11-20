@@ -17,10 +17,10 @@ func _ready() -> void:
 	add_to_group("enemies")
 	var shape := CapsuleShape3D.new()
 	shape.radius = 0.48
-	shape.height = 1.55
+	shape.height = 1.75
 	var collision := CollisionShape3D.new()
 	collision.shape = shape
-	collision.position.y = 0.78
+	collision.position.y = 0.88
 	add_child(collision)
 	body_mesh = MeshInstance3D.new()
 	var bean := SphereMesh.new()
