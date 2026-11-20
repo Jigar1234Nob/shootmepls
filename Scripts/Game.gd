@@ -183,7 +183,7 @@ func _show_controls() -> void:
 	heading.add_theme_color_override("font_color", Color(0.86, 0.88, 0.82))
 	controls_page.add_child(heading)
 	var details := Label.new()
-	details.text = "KEYBOARD & MOUSE\\nWASD          MOVE\\nMOUSE         LOOK / AIM\\nLEFT CLICK    FIRE\\nSPACE         JUMP\\nLEFT SHIFT    SPRINT\\nESC           PAUSE\\n\\nCONTROLLER\\nLEFT STICK    MOVE\\nRIGHT STICK   LOOK / AIM\\nA / CROSS     JUMP\\nRB / R1       FIRE\\nX / SQUARE    ALTERNATE FIRE\\nL3            SPRINT\\nSTART         PAUSE\\n\\nSURVIVAL\\nCollect limited ammunition and medical supplies.\\nEvery fifth wave contains a heavy boss with five times the health."
+	details.text = "KEYBOARD & MOUSE\nWASD          MOVE\nMOUSE         LOOK / AIM\nLEFT CLICK    FIRE\nSPACE         JUMP\nLEFT SHIFT    SPRINT\nESC           PAUSE\n\nCONTROLLER\nLEFT STICK    MOVE\nRIGHT STICK   LOOK / AIM\nA / CROSS     JUMP\nRB / R1       FIRE\nX / SQUARE    ALTERNATE FIRE\nL3            SPRINT\nSTART         PAUSE\n\nSURVIVAL\nCollect limited ammunition and medical supplies.\nEvery fifth wave contains a heavy boss with five times the health."
 	details.position = Vector2(82, 145)
 	details.add_theme_font_size_override("font_size", 19)
 	details.add_theme_color_override("font_color", Color(0.72, 0.75, 0.69))
