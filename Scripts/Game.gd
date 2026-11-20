@@ -37,7 +37,7 @@ func _process(delta: float) -> void:
 	if not game_started or game_over:
 		return
 	spawn_timer -= delta
-	if spawn_timer <= 0.0 and enemies.size() < mini(5 + wave * 2, 18):
+	if spawn_timer <= 0.0 and get_tree().get_nodes_in_group("enemies").size() < mini(5 + wave * 2, 18):
 		_spawn_bean()
 		spawn_timer = maxf(0.8, 3.2 - wave * 0.12)
 	_update_hud()
