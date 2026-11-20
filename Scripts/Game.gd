@@ -115,10 +115,3 @@ func _spawn_pickups() -> void:
 		pickup.amount = 35 if entry[1] == "health" else 30
 		pickup.position = entry[0]
 		add_child(pickup)
-
-func _material(color: Color, metal: float, rough: float) -> StandardMaterial3D:
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = color
-	mat.metallic = metal
-	mat.roughness = rough
-	return mat
