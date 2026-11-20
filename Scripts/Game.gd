@@ -93,7 +93,7 @@ func _show_start_screen() -> void:
 	main_menu.add_child(right_title)
 
 	var briefing := Label.new()
-	briefing.text = "OPERATION: IRON YARD\\n\\nHOSTILE CONTACTS: 06\\nAREA: INDUSTRIAL TRAINING ZONE\\nOBJECTIVE: SURVIVE\\n\\nSCAVENGE AMMUNITION AND MEDICAL\\nSUPPLIES. HOSTILES WILL PURSUE ON SIGHT."
+	briefing.text = "OPERATION: IRON YARD\n\nHOSTILE CONTACTS: 06\nAREA: INDUSTRIAL TRAINING ZONE\nOBJECTIVE: SURVIVE\n\nSCAVENGE AMMUNITION AND MEDICAL\nSUPPLIES. HOSTILES WILL PURSUE ON SIGHT."
 	briefing.position = Vector2(790, 208)
 	briefing.custom_minimum_size = Vector2(390, 190)
 	briefing.add_theme_font_size_override("font_size", 14)
@@ -108,7 +108,7 @@ func _show_start_screen() -> void:
 	main_menu.add_child(divider)
 
 	var rules := Label.new()
-	rules.text = "FIELD RULES\\n\\n01   WATCH YOUR AMMUNITION\\n02   USE COVER\\n03   KEEP MOVING\\n04   DO NOT GET SURROUNDED"
+	rules.text = "FIELD RULES\n\n01   WATCH YOUR AMMUNITION\n02   USE COVER\n03   KEEP MOVING\n04   DO NOT GET SURROUNDED"
 	rules.position = Vector2(790, 452)
 	rules.add_theme_font_size_override("font_size", 12)
 	rules.add_theme_color_override("font_color", Color(0.57, 0.60, 0.55))
