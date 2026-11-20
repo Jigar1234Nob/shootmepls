@@ -5,6 +5,7 @@ var menu_layer: CanvasLayer
 var menu_status: Label
 var match_started := false
 var current_wave := 1
+var alive_enemies := 0
 var wave_transition := false
 var wave_label: Label
 var controls_page: Control
@@ -223,6 +224,7 @@ func _spawn_wave(wave: int) -> void:
 	if is_instance_valid(player) and player.has_method("set_wave"):
 		player.set_wave(wave)
 	var count := mini(6 + (wave - 1) * 2, 30)
+	alive_enemies = count
 	var boss_wave := wave % 5 == 0
 	for i in range(count):
 		var enemy = preload("res://Scripts/EnemyBean.gd").new()
@@ -261,13 +263,14 @@ func _spawn_wave_pickups(wave: int) -> void:
 		pickup.position = Vector3(randf_range(-27, 27), 0, randf_range(-27, 27))
 		add_child(pickup)
 
-func _on_enemy_defeated() -> void:
+func _on_enemy_defeated(_enemy: Node) -> void:
+	alive_enemies = maxi(0, alive_enemies - 1)
 	call_deferred("_check_wave_clear")
 
 func _check_wave_clear() -> void:
 	if not match_started or wave_transition:
 		return
-	if get_tree().get_nodes_in_group("enemies").is_empty():
+	if alive_enemies <= 0:
 		wave_transition = true
 		current_wave += 1
 		await get_tree().create_timer(2.0).timeout
