@@ -1,8 +1,8 @@
 # Shoot Me Pls
 
-A Godot 4 first-person bean survival shooter with keyboard/mouse, gamepad and touchscreen controls.
+A Godot 4 tactical first-person survival shooter with keyboard/mouse, gamepad and touchscreen controls.
 
-## Keyboard and mouse
+## Starting screen\n- The game opens on a tactical main menu with **Deploy / Start Match**, **Controls**, and **Quit**.\n- Select **Deploy / Start Match** to load into the combat arena.\n\n## Keyboard and mouse
 - **WASD** move.
 - **Mouse** look around. The cursor is captured when the game starts.
 - **Hold left mouse button** to fire.
@@ -38,7 +38,7 @@ Press **Escape** or **Start / Options**, then choose **Settings**.
 - Tap **JUMP** to jump.
 - Pause button opens the menu.
 
-## Visual direction
+## Visual direction\n- Counter-Strike-inspired tactical presentation: restrained military-industrial palette, compact menu typography, mission briefing and direct match entry.\n- This is an original game and does not use Counter-Strike assets, branding or maps.
 - Muted industrial training yard with concrete cover, steel structures and subdued lighting.
 - Enemy beans are featureless bean-shaped silhouettes with no eyes, pupils, mouths or facial markings.
 - The first-person weapon is a dark low-profile rifle assembled from procedural 3D parts.
