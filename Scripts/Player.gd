@@ -19,6 +19,9 @@ var fire_cooldown := 0.0
 var mobile_move := Vector2.ZERO
 var mobile_fire := false
 var mobile_jump := false
+var controller_aim_sensitivity := 2.3
+var controller_deadzone := 0.16
+var _controller_jump_was_down := false
 var hud: Label
 var health_bar: ColorRect
 var health_fill: ColorRect
@@ -292,6 +295,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		_toggle_pause()
 		get_viewport().set_input_as_handled()
+	elif event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_START:
+		_toggle_pause()
+		get_viewport().set_input_as_handled()
 	elif event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_RIGHT:
 			if not paused:
@@ -303,6 +309,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventScreenDrag and event.position.x > get_viewport().get_visible_rect().size.x * 0.38:
 		_aim(event.relative)
 
+func _get_controller_device() -> int:
+	var devices := Input.get_connected_joypads()
+	return devices[0] if not devices.is_empty() else -1
+
 func _aim(delta: Vector2) -> void:
 	rotate_y(-delta.x * mouse_sensitivity)
 	pitch = clamp(pitch - delta.y * mouse_sensitivity, -1.35, 1.35)
@@ -311,20 +321,34 @@ func _aim(delta: Vector2) -> void:
 func _physics_process(delta: float) -> void:
 	if paused:
 		return
+	var controller := _get_controller_device()
+	if controller >= 0:
+		var right_x := Input.get_joy_axis(controller, JOY_AXIS_RIGHT_X)
+		var right_y := Input.get_joy_axis(controller, JOY_AXIS_RIGHT_Y)
+		if absf(right_x) > controller_deadzone or absf(right_y) > controller_deadzone:
+			_aim(Vector2(right_x, right_y) * controller_aim_sensitivity * delta * 60.0)
 	fire_cooldown = maxf(0.0, fire_cooldown - delta)
-	if (Input.is_action_pressed("fire") or mobile_fire) and fire_cooldown <= 0:
+	var controller_fire := controller >= 0 and (Input.is_joy_button_pressed(controller, JOY_BUTTON_RIGHT_SHOULDER) or Input.is_joy_button_pressed(controller, JOY_BUTTON_X))
+	if (Input.is_action_pressed("fire") or mobile_fire or controller_fire) and fire_cooldown <= 0:
 		_fire()
 		fire_cooldown = fire_rate
 	if not is_on_floor():
 		velocity.y -= gravity * delta
-	if (Input.is_action_just_pressed("jump") or mobile_jump) and is_on_floor():
+	var controller_jump := controller >= 0 and Input.is_joy_button_pressed(controller, JOY_BUTTON_A)
+	if (Input.is_action_just_pressed("jump") or mobile_jump or (controller_jump and not _controller_jump_was_down)) and is_on_floor():
 		velocity.y = jump_velocity
+	_controller_jump_was_down = controller_jump
 	var move := Input.get_vector("move_left", "move_right", "move_forward", "move_backward")
+	if controller >= 0:
+		var left_stick := Vector2(Input.get_joy_axis(controller, JOY_AXIS_LEFT_X), Input.get_joy_axis(controller, JOY_AXIS_LEFT_Y))
+		if left_stick.length() > controller_deadzone:
+			move = left_stick.limit_length(1.0)
 	if mobile_move.length() > 0.08:
 		move = mobile_move
 	var direction := (transform.basis * Vector3(move.x, 0, move.y)).normalized()
 	var moving := direction.length() > 0.05
-	var speed := sprint_speed if Input.is_action_pressed("sprint") and not OS.has_feature("mobile") else walk_speed
+	var controller_sprint := controller >= 0 and Input.is_joy_button_pressed(controller, JOY_BUTTON_LEFT_STICK)
+	var speed := sprint_speed if (Input.is_action_pressed("sprint") or controller_sprint) and not OS.has_feature("mobile") else walk_speed
 	velocity.x = direction.x * speed if moving else move_toward(velocity.x, 0.0, walk_speed * 8 * delta)
 	velocity.z = direction.z * speed if moving else move_toward(velocity.z, 0.0, walk_speed * 8 * delta)
 	move_and_slide()
