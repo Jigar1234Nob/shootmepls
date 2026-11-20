@@ -1,26 +1,21 @@
 # Shoot Me Pls
 
-A simple first-person bean target shooter built with Godot 4.
+Godot 4 first-person bean survival shooter.
 
-## Run
-1. Install Godot 4.
-2. Download or clone this repository.
-3. Open `project.godot` in Godot.
-4. Press F5.
+## Desktop
+- WASD move, mouse aim, hold left-click to shoot, Space jump, Escape pause.
 
-## Controls
-- WASD: move
-- Mouse: aim/look around
-- Left mouse button: automatic fire (fast bullets)
-- Space: jump
-- Shift: sprint
-- Escape: release the mouse
-- Click: capture the mouse again
+## Touch
+- Left joystick moves.
+- Drag the right side to aim.
+- Hold FIRE to shoot.
+- JUMP button jumps.
+- Pause button opens the menu.
 
 ## Gameplay
-- Open grass field with a blue sky and no walls.
-- First-person view with a bean-green hand and gun.
-- Stationary practice targets have 100 HP.
-- Bullets deal 12.5 damage; each target takes 8 hits.
-- The health bar and HP number above each target update when hit.
-- Targets disappear when their health reaches zero.
+- Four walls enclose the grass arena.
+- Enemy beans chase and damage the player.
+- Ammo pickups add 30 rounds; medkits restore 35 HP.
+- Player health starts at 100.
+
+The project uses Godot's GL Compatibility renderer for mobile. iOS export still requires Godot export templates, Xcode, an Apple signing team and provisioning profile.
