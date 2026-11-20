@@ -108,10 +108,11 @@ func take_damage(amount: int) -> void:
 		defeated.emit(reward)
 		queue_free()
 	else:
-		var mat := body_mesh.material_override as StandardMaterial3D
-		mat.albedo_color = Color(1.0, 0.35, 0.28)
-		var timer := get_tree().create_timer(0.09)
-		timer.timeout.connect(func():
-			if is_instance_valid(body_mesh):
-				mat.albedo_color = Color(0.18, 0.68, 0.38)
-		)
+		var mat := body_mesh.material_override as ShaderMaterial
+		if mat:
+			mat.set_shader_parameter("base_color", Color(1.0, 0.35, 0.28))
+			var timer := get_tree().create_timer(0.09)
+			timer.timeout.connect(func():
+				if is_instance_valid(body_mesh) and is_instance_valid(mat):
+					mat.set_shader_parameter("base_color", Color(0.18, 0.68, 0.38))
+			)
