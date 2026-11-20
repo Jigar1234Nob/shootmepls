@@ -40,8 +40,6 @@ func _process(delta: float) -> void:
 	if spawn_timer <= 0.0 and enemies.size() < mini(5 + wave * 2, 18):
 		_spawn_bean()
 		spawn_timer = maxf(0.8, 3.2 - wave * 0.12)
-	if Input.is_key_pressed(KEY_B) and not shop_open:
-		_open_shop()
 	_update_hud()
 
 func _unhandled_input(event: InputEvent) -> void:
