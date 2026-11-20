@@ -264,8 +264,14 @@ func _on_bean_defeated(reward: int) -> void:
 	kills += 1
 	if kills % 8 == 0:
 		wave += 1
-	if randf() < 0.35:
-		_spawn_pickup("ammo" if randf() < 0.65 else "health")
+	var low_health := player != null and player.health <= 65
+	var low_ammo := player != null and player.ammo_in_clip + player.reserve_ammo <= 24
+	if low_health and randf() < 0.75:
+		_spawn_pickup("health")
+	elif low_ammo and randf() < 0.8:
+		_spawn_pickup("ammo")
+	elif randf() < 0.22:
+		_spawn_pickup("ammo" if randf() < 0.6 else "health")
 	_update_hud()
 
 func _spawn_pickup(kind: String) -> void:
