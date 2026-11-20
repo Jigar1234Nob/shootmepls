@@ -40,8 +40,6 @@ func _process(delta: float) -> void:
 	if spawn_timer <= 0.0 and enemies.size() < mini(5 + wave * 2, 18):
 		_spawn_bean()
 		spawn_timer = maxf(0.8, 3.2 - wave * 0.12)
-	if Input.is_key_pressed(KEY_B) and not shop_open:
-		_open_shop()
 	_update_hud()
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -107,10 +105,11 @@ func _make_box(node_name: String, pos: Vector3, size: Vector3, color: Color, sol
 	var box := BoxMesh.new()
 	box.size = size
 	mesh.mesh = box
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = color
-	mat.roughness = 0.82
-	mat.metallic = 0.18
+	var mat := ShaderMaterial.new()
+	mat.shader = load("res://Materials/ProceduralSurface.gdshader")
+	mat.set_shader_parameter("base_color", color)
+	mat.set_shader_parameter("roughness_value", 0.82)
+	mat.set_shader_parameter("metallic_value", 0.18)
 	mesh.material_override = mat
 	parent.add_child(mesh)
 	if solid:
