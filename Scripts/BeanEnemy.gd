@@ -86,6 +86,10 @@ func _physics_process(delta: float) -> void:
 	if distance <= attack_range and shoot_timer <= 0.0:
 		_fire_at_player()
 		shoot_timer = shoot_cooldown + randf_range(-0.3, 0.45)
+	if body_mesh:
+		var bob := sin(float(Time.get_ticks_msec()) * 0.006 + float(get_instance_id() % 100)) * 0.035
+		body_mesh.position.y = 0.78 + bob
+		body_mesh.rotation.z = sin(float(Time.get_ticks_msec()) * 0.004) * 0.025
 	if hit_flash > 0:
 		hit_flash -= delta
 	move_and_slide()
