@@ -4,7 +4,8 @@ var player: CharacterBody3D
 
 func _ready() -> void:
 	_build_sky()
-	_build_baseplate()
+	_build_grass()
+	_build_targets()
 	player = preload("res://Scripts/Player.gd").new()
 	player.position = Vector3(0, 0.1, 0)
 	add_child(player)
@@ -24,7 +25,6 @@ func _build_sky() -> void:
 	sky_material.use_debanding = true
 	sky.sky_material = sky_material
 	env.sky = sky
-	env.background_mode = Environment.BG_SKY
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color(0.68, 0.76, 0.9)
 	env.ambient_light_energy = 0.8
@@ -38,19 +38,17 @@ func _build_sky() -> void:
 	sun.shadow_enabled = true
 	add_child(sun)
 
-func _build_baseplate() -> void:
+func _build_grass() -> void:
 	var ground := StaticBody3D.new()
-	ground.name = "GreenBaseplate"
+	ground.name = "GrassField"
 	add_child(ground)
 
 	var mesh_instance := MeshInstance3D.new()
 	var plane := PlaneMesh.new()
 	plane.size = Vector2(500, 500)
 	mesh_instance.mesh = plane
-	var grass := StandardMaterial3D.new()
-	grass.albedo_color = Color(0.18, 0.62, 0.22)
-	grass.roughness = 1.0
-	grass.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var grass := ShaderMaterial.new()
+	grass.shader = preload("res://Materials/Grass.gdshader")
 	mesh_instance.material_override = grass
 	ground.add_child(mesh_instance)
 
@@ -60,3 +58,17 @@ func _build_baseplate() -> void:
 	collision.shape = shape
 	collision.position.y = -0.25
 	ground.add_child(collision)
+
+func _build_targets() -> void:
+	var target_script = preload("res://Scripts/Target.gd")
+	var positions := [
+		Vector3(0, 0, -18), Vector3(7, 0, -24), Vector3(-8, 0, -28),
+		Vector3(16, 0, -12), Vector3(-17, 0, -15), Vector3(24, 0, 5),
+		Vector3(-24, 0, 7), Vector3(5, 0, 22), Vector3(-10, 0, 25)
+	]
+	for i in positions.size():
+		var target := StaticBody3D.new()
+		target.set_script(target_script)
+		target.position = positions[i]
+		target.name = "Target_%02d" % (i + 1)
+		add_child(target)
