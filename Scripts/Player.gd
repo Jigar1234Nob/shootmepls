@@ -635,9 +635,12 @@ func _input(event: InputEvent) -> void:
 			rebind_prompt.text = "Updated %s." % action
 			_refresh_bind_labels()
 			get_viewport().set_input_as_handled()
+	elif waiting_for_controller_bind != "" and event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		waiting_for_controller_bind = ""
+		rebind_prompt.text = "Binding cancelled."
+		_refresh_bind_labels()
+		get_viewport().set_input_as_handled()
 	elif waiting_for_controller_bind != "" and event is InputEventJoypadButton and event.pressed:
-		if event.button_index == JOY_BUTTON_START and waiting_for_controller_bind == "pause":
-			return
 		_set_controller_binding(waiting_for_controller_bind, event.button_index)
 		var changed := waiting_for_controller_bind
 		waiting_for_controller_bind = ""
