@@ -205,6 +205,7 @@ func _start_match() -> void:
 	_build_floor()
 	_build_perimeter()
 	_build_cover()
+	_build_map_details()
 	player = preload("res://Scripts/Player.gd").new()
 	add_child(player)
 	current_wave = 1
@@ -233,17 +234,22 @@ func _wave_spawn_position(index: int, total: int) -> Vector3:
 	return Vector3(cos(angle) * radius, 0.0, sin(angle) * radius)
 
 func _spawn_wave_pickups(wave: int) -> void:
+	# Remove uncollected supplies so stock never accumulates between waves.
+	for old_pickup in get_tree().get_nodes_in_group("wave_pickups"):
+		old_pickup.queue_free()
 	# Supplies are deliberately scarce and are replenished only at wave start.
 	var ammo_count := 1 if wave < 4 else 2
 	var health_count := 1 if wave < 3 else (2 if wave % 5 == 0 else 1)
 	for i in range(ammo_count):
 		var pickup = preload("res://Scripts/Pickup.gd").new()
+		pickup.add_to_group("wave_pickups")
 		pickup.pickup_type = "ammo"
 		pickup.amount = 18 if wave < 5 else 14
 		pickup.position = Vector3(randf_range(-27, 27), 0, randf_range(-27, 27))
 		add_child(pickup)
 	for i in range(health_count):
 		var pickup = preload("res://Scripts/Pickup.gd").new()
+		pickup.add_to_group("wave_pickups")
 		pickup.pickup_type = "health"
 		pickup.amount = 25
 		pickup.position = Vector3(randf_range(-27, 27), 0, randf_range(-27, 27))
@@ -337,6 +343,38 @@ func _build_cover() -> void:
 	for x in [-27.0, 27.0]:
 		_add_static_box(Vector3(x, 4, 0), Vector3(0.22, 8, 0.22), Color(0.09, 0.10, 0.095))
 		_add_static_box(Vector3(x, 7.8, 0), Vector3(5, 0.22, 0.22), Color(0.09, 0.10, 0.095))
+
+func _build_map_details() -> void:
+	# Industrial lanes, container stacks and concrete dividers create readable combat routes.
+	_add_static_box(Vector3(-27, 1.25, -5), Vector3(8, 2.5, 3.2), Color(0.16, 0.19, 0.20))
+	_add_static_box(Vector3(-27, 3.85, -5), Vector3(8, 2.5, 3.2), Color(0.19, 0.21, 0.21))
+	_add_static_box(Vector3(27, 1.25, 6), Vector3(8, 2.5, 3.2), Color(0.17, 0.19, 0.20))
+	_add_static_box(Vector3(7, 1.0, -29), Vector3(12, 2.0, 2.0), Color(0.22, 0.23, 0.21))
+	_add_static_box(Vector3(-7, 1.0, 29), Vector3(12, 2.0, 2.0), Color(0.22, 0.23, 0.21))
+	# Short concrete barriers break up long sight lines without closing the arena.
+	for x in [-18.0, 18.0]:
+		for z in [-18.0, 18.0]:
+			_add_static_box(Vector3(x, 0.65, z), Vector3(4.0, 1.3, 1.1), Color(0.30, 0.31, 0.29))
+	# Industrial light poles and cool daylight fill.
+	for pos in [Vector3(-34, 0, -34), Vector3(34, 0, -34), Vector3(-34, 0, 34), Vector3(34, 0, 34)]:
+		_add_static_box(pos + Vector3(0, 4.0, 0), Vector3(0.28, 8.0, 0.28), Color(0.085, 0.095, 0.095))
+		_add_static_box(pos + Vector3(0, 8.1, 0), Vector3(1.2, 0.18, 0.55), Color(0.11, 0.13, 0.13))
+		var lamp := OmniLight3D.new()
+		lamp.position = pos + Vector3(0, 7.7, 0)
+		lamp.light_color = Color(0.68, 0.78, 0.86)
+		lamp.light_energy = 0.45
+		lamp.omni_range = 13.0
+		add_child(lamp)
+	# Painted lane markings and restrained hazard blocks are visual-only.
+	for z in [-31.0, 31.0]:
+		for x in range(-24, 25, 6):
+			var stripe := MeshInstance3D.new()
+			var stripe_mesh := BoxMesh.new()
+			stripe_mesh.size = Vector3(2.2, 0.025, 0.16)
+			stripe.mesh = stripe_mesh
+			stripe.position = Vector3(float(x), 0.015, z)
+			stripe.material_override = _material(Color(0.43, 0.39, 0.25), 0.0, 0.95)
+			add_child(stripe)
 
 func _add_static_box(pos: Vector3, size: Vector3, color: Color) -> void:
 	var body := StaticBody3D.new()
