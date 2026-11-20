@@ -10,6 +10,7 @@ var camera_pivot: Node3D
 var camera: Camera3D
 var gun_visual: Node3D
 var pitch := 0.0
+var max_health := 100.0
 var health := 100.0
 var ammo := 90
 var fire_cooldown := 0.0
@@ -22,6 +23,8 @@ var paused := false
 
 func _ready() -> void:
 	add_to_group("player")
+	if not OS.has_feature("mobile"):
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	_make_collision()
 	_make_shadow()
 	_make_camera()
@@ -164,6 +167,7 @@ func _make_pause_menu(layer: CanvasLayer) -> void:
 	pause_layer = Control.new()
 	pause_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	pause_layer.visible = false
+	pause_layer.process_mode = Node.PROCESS_MODE_ALWAYS
 	pause_layer.mouse_filter = Control.MOUSE_FILTER_STOP
 	layer.add_child(pause_layer)
 	var shade := ColorRect.new()
