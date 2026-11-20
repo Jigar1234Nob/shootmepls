@@ -633,12 +633,12 @@ func _input(event: InputEvent) -> void:
 			_refresh_bind_labels()
 			get_viewport().set_input_as_handled()
 		elif event is InputEventMouseButton and event.pressed:
-			var action := waiting_for_bind
-			InputMap.action_erase_events(action)
-			InputMap.action_add_event(action, event.duplicate())
+			var mouse_action := waiting_for_bind
+			InputMap.action_erase_events(mouse_action)
+			InputMap.action_add_event(mouse_action, event.duplicate())
 			waiting_for_bind = ""
 			_save_settings()
-			rebind_prompt.text = "Updated %s." % action
+			rebind_prompt.text = "Updated %s." % mouse_action
 			_refresh_bind_labels()
 			get_viewport().set_input_as_handled()
 	elif waiting_for_controller_bind != "" and event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
@@ -704,7 +704,7 @@ func _load_settings() -> void:
 	controller_pause_button = int(config.get_value("controller", "pause", controller_pause_button))
 	for action in ["move_forward", "move_backward", "move_left", "move_right", "jump", "sprint", "fire"]:
 		var saved = config.get_value("keybinds", action, {})
-		if not saved is Dictionary:
+		if typeof(saved) != TYPE_DICTIONARY:
 			continue
 		InputMap.action_erase_events(action)
 		if saved.get("type", "") == "key":
