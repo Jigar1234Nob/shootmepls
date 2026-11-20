@@ -2,16 +2,19 @@
 
 A Godot 4 tactical first-person survival shooter with keyboard/mouse, gamepad and touchscreen controls.
 
-## Starting screen\n- The game opens on a tactical main menu with **Deploy / Start Match**, **Controls**, and **Quit**.\n- Select **Deploy / Start Match** to load into the combat arena.\n\n## Keyboard and mouse
+## Main menu
+- Deploy starts a match.
+- Controls opens a dedicated field-manual page.
+- Main menu and controls page credit **Jigar Rai**.
+
+## Keyboard and mouse
 - **WASD** move.
-- **Mouse** look around. The cursor is captured when the game starts.
+- **Mouse** look around.
 - **Hold left mouse button** to fire.
 - **Right mouse button** release or recapture the cursor.
 - **Space** jump.
 - **Shift** sprint.
 - **Escape** pause or resume.
-
-If the cursor is released, click the game window to recapture it.
 
 ## Controller
 - **Left stick** move.
@@ -20,16 +23,15 @@ If the cursor is released, click the game window to recapture it.
 - **Right shoulder (RB / R1)** or **X / Square** fire.
 - **Left stick click (L3)** sprint.
 - **Start / Options** pause or resume.
-
-Standard Godot gamepad mappings are used. The game reads the first connected controller.
+- Controller look sensitivity and deadzone can be changed in Settings.
 
 ## Settings
 Press **Escape** or **Start / Options**, then choose **Settings**.
-- Mouse look sensitivity slider.
+- Mouse sensitivity slider.
 - Controller look sensitivity and stick deadzone sliders.
-- Rebind keyboard and mouse actions by selecting a bind and pressing the replacement key or mouse button.
-- Rebind controller jump, fire, alternate fire, sprint and pause by selecting a bind and pressing a controller button.
+- Rebind keyboard/mouse actions and controller buttons.
 - **Reset defaults** restores the original controls and sensitivity values.
+- Settings are saved locally in `user://settings.cfg`.
 
 ## iPhone / touch
 - Left virtual joystick moves.
@@ -38,17 +40,18 @@ Press **Escape** or **Start / Options**, then choose **Settings**.
 - Tap **JUMP** to jump.
 - Pause button opens the menu.
 
-## Visual direction\n- Counter-Strike-inspired tactical presentation: restrained military-industrial palette, compact menu typography, mission briefing and direct match entry.\n- This is an original game and does not use Counter-Strike assets, branding or maps.
-- Muted industrial training yard with concrete cover, steel structures and subdued lighting.
-- Enemy beans are featureless bean-shaped silhouettes with no eyes, pupils, mouths or facial markings.
-- The first-person weapon is a dark low-profile rifle assembled from procedural 3D parts.
-- The HUD uses restrained charcoal and muted olive tones rather than bright arcade colours.
-
 ## Gameplay
-- Concrete perimeter walls and waist-high cover form the combat arena.
-- Enemy beans pursue and damage the player.
-- Ammo pickups add 30 rounds; medkits restore 35 HP.
-- Player health starts at 100.
-- The HUD shows health, a live health bar, and ammunition.
+- Featureless bean-shaped enemies: no eyes, mouths, faces or facial markings.
+- Industrial yard with container stacks, concrete barriers, lane markings and cool blue daylight over a charcoal/grey environment.
+- Projectiles visibly leave the rifle muzzle and travel toward the crosshair.
+- Enemy health bars appear only after that enemy is hit.
+- Clear every enemy to advance to the next wave.
+- Enemy count and durability increase as waves progress.
+- Every fifth wave (5, 10, 15, 20, ...) includes a boss with five times the base enemy health.
+- Each wave supplies only a small, fixed number of ammo and medical pickups. Uncollected supplies are cleared when the next wave begins.
+- Dying automatically restarts the match from wave 1.
+- Choosing **Quit to Main Menu** from the in-game pause menu returns to the title screen.
 
-The project uses Godot's GL Compatibility renderer for mobile. iOS export still requires Godot export templates, Xcode, an Apple signing team and provisioning profile.
+This is an original game and does not use Counter-Strike assets, branding or maps. The project uses Godot's GL Compatibility renderer for mobile. iOS export still requires Godot export templates, Xcode, an Apple signing team and provisioning profile.
+
+**Created by Jigar Rai.**
