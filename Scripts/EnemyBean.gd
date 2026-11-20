@@ -1,4 +1,8 @@
 extends CharacterBody3D
+
+signal defeated
+
+@export var is_boss := false
 @export var max_health := 100.0
 @export var move_speed := 3.1
 var health := 100.0
@@ -9,6 +13,7 @@ var bar: Label3D
 func _ready() -> void:
 	collision_layer = 2
 	collision_mask = 1
+	add_to_group("enemies")
 	health = max_health
 	var col := CollisionShape3D.new()
 	var shape := CapsuleShape3D.new()
@@ -24,14 +29,12 @@ func _ready() -> void:
 	bean.height = 1.7
 	body.mesh = bean
 	body.position.y = 0.9
-	body.scale = Vector3(0.85, 1.0, 0.82)
+	body.scale = Vector3(0.85, 1.0, 0.82) * (1.65 if is_boss else 1.0)
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = Color(0.22, 0.24, 0.21)
 	mat.roughness = 0.92
 	body.material_override = mat
 	add_child(body)
-	_add_gear(Vector3(0, 0.78, -0.49), Vector3(0.62, 0.48, 0.12), Color(0.075, 0.082, 0.078))
-	_add_gear(Vector3(0, 0.42, -0.50), Vector3(0.48, 0.16, 0.10), Color(0.12, 0.13, 0.12))
 	bar = Label3D.new()
 	bar.position.y = 2.05
 	bar.billboard = BaseMaterial3D.BILLBOARD_ENABLED
@@ -40,6 +43,7 @@ func _ready() -> void:
 	bar.pixel_size = 0.0028
 	bar.no_depth_test = true
 	bar.modulate = Color(0.76, 0.78, 0.72)
+	bar.visible = false
 	add_child(bar)
 	_update_bar()
 
@@ -80,13 +84,15 @@ func _physics_process(delta: float) -> void:
 
 func take_damage(amount: float) -> void:
 	health = maxf(0.0, health - amount)
+	bar.visible = true
 	_update_bar()
 	if health <= 0.0:
+		defeated.emit()
 		queue_free()
 
 func _update_bar() -> void:
 	if not is_instance_valid(bar):
 		return
 	var count := int(ceil(health / max_health * 8.0))
-	bar.text = "■".repeat(count) + "·".repeat(8 - count)
+	bar.text = ("BOSS  " if is_boss else "") + "■".repeat(count) + "·".repeat(8 - count)
 	bar.modulate = Color(0.72, 0.74, 0.68) if health > 50.0 else Color(0.72, 0.42, 0.28)
