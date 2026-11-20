@@ -21,7 +21,19 @@ var mobile_fire := false
 var mobile_jump := false
 var controller_aim_sensitivity := 2.3
 var controller_deadzone := 0.16
+var controller_jump_button := JOY_BUTTON_A
+var controller_fire_button := JOY_BUTTON_RIGHT_SHOULDER
+var controller_fire_alt_button := JOY_BUTTON_X
+var controller_sprint_button := JOY_BUTTON_LEFT_STICK
+var controller_pause_button := JOY_BUTTON_START
 var _controller_jump_was_down := false
+var settings_panel: VBoxContainer
+var pause_menu_box: VBoxContainer
+var rebind_prompt: Label
+var waiting_for_bind := ""
+var waiting_for_controller_bind := ""
+var keybind_buttons: Dictionary = {}
+var controller_bind_buttons: Dictionary = {}
 var hud: Label
 var health_bar: ColorRect
 var health_fill: ColorRect
@@ -249,38 +261,103 @@ func _make_pause_menu(layer: CanvasLayer) -> void:
 	shade.color = Color(0.008, 0.018, 0.035, 0.82)
 	pause_layer.add_child(shade)
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(330, 250)
+	panel.custom_minimum_size = Vector2(620, 560)
 	panel.set_anchors_preset(Control.PRESET_CENTER)
-	panel.position = Vector2(-165, -125)
-	panel.add_theme_stylebox_override("panel", _panel_style(Color(0.035, 0.04, 0.035, 0.98), Color(0.42, 0.43, 0.37)))
+	panel.position = Vector2(-310, -280)
+	panel.add_theme_stylebox_override("panel", _panel_style(Color(0.025, 0.03, 0.028, 0.98), Color(0.42, 0.43, 0.37)))
 	pause_layer.add_child(panel)
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 12)
-	panel.add_child(column)
+	var root_column := VBoxContainer.new()
+	root_column.add_theme_constant_override("separation", 14)
+	panel.add_child(root_column)
+
+	pause_menu_box = VBoxContainer.new()
+	pause_menu_box.add_theme_constant_override("separation", 12)
+	root_column.add_child(pause_menu_box)
 	var title := Label.new()
 	title.text = "PAUSED"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 27)
 	title.add_theme_color_override("font_color", Color(0.82, 0.83, 0.76))
-	column.add_child(title)
+	pause_menu_box.add_child(title)
 	var hint := Label.new()
-	hint.text = "Take a breather. The beans won't."
+	hint.text = "MATCH PAUSED  /  OPERATIONS MENU"
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.add_theme_font_size_override("font_size", 12)
 	hint.add_theme_color_override("font_color", Color(0.62, 0.63, 0.57))
-	column.add_child(hint)
+	pause_menu_box.add_child(hint)
 	var resume := Button.new()
 	resume.text = "RESUME  ·  ESC"
 	resume.pressed.connect(_toggle_pause)
-	column.add_child(resume)
+	pause_menu_box.add_child(resume)
+	var settings_button := Button.new()
+	settings_button.text = "SETTINGS"
+	settings_button.pressed.connect(_show_settings)
+	pause_menu_box.add_child(settings_button)
 	var restart := Button.new()
-	restart.text = "RESTART"
+	restart.text = "RESTART MATCH"
 	restart.pressed.connect(func(): get_tree().paused = false; get_tree().reload_current_scene())
-	column.add_child(restart)
+	pause_menu_box.add_child(restart)
 	var quit := Button.new()
 	quit.text = "QUIT"
 	quit.pressed.connect(func(): get_tree().quit())
-	column.add_child(quit)
+	pause_menu_box.add_child(quit)
+
+	settings_panel = VBoxContainer.new()
+	settings_panel.visible = false
+	settings_panel.add_theme_constant_override("separation", 10)
+	root_column.add_child(settings_panel)
+	var settings_title := Label.new()
+	settings_title.text = "SETTINGS"
+	settings_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	settings_title.add_theme_font_size_override("font_size", 24)
+	settings_title.add_theme_color_override("font_color", Color(0.82, 0.83, 0.76))
+	settings_panel.add_child(settings_title)
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(570, 405)
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	settings_panel.add_child(scroll)
+	var settings_rows := VBoxContainer.new()
+	settings_rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	settings_rows.add_theme_constant_override("separation", 8)
+	scroll.add_child(settings_rows)
+
+	_add_settings_section(settings_rows, "AIM")
+	_add_slider_setting(settings_rows, "Mouse sensitivity", 0.0005, 0.01, mouse_sensitivity, 0.0001, _set_mouse_sensitivity)
+	_add_slider_setting(settings_rows, "Controller look sensitivity", 0.5, 8.0, controller_aim_sensitivity, 0.1, _set_controller_sensitivity)
+	_add_slider_setting(settings_rows, "Controller stick deadzone", 0.05, 0.4, controller_deadzone, 0.01, _set_controller_deadzone)
+
+	_add_settings_section(settings_rows, "KEYBOARD / MOUSE BINDS")
+	_add_rebind_row(settings_rows, "Move forward", "move_forward")
+	_add_rebind_row(settings_rows, "Move backward", "move_backward")
+	_add_rebind_row(settings_rows, "Move left", "move_left")
+	_add_rebind_row(settings_rows, "Move right", "move_right")
+	_add_rebind_row(settings_rows, "Jump", "jump")
+	_add_rebind_row(settings_rows, "Sprint", "sprint")
+	_add_rebind_row(settings_rows, "Fire", "fire")
+
+	_add_settings_section(settings_rows, "CONTROLLER BINDS")
+	_add_controller_rebind_row(settings_rows, "Jump", "jump")
+	_add_controller_rebind_row(settings_rows, "Fire", "fire")
+	_add_controller_rebind_row(settings_rows, "Alternate fire", "fire_alt")
+	_add_controller_rebind_row(settings_rows, "Sprint", "sprint")
+	_add_controller_rebind_row(settings_rows, "Pause", "pause")
+	rebind_prompt = Label.new()
+	rebind_prompt.text = "Select a bind to change it."
+	rebind_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	rebind_prompt.add_theme_color_override("font_color", Color(0.68, 0.69, 0.62))
+	settings_panel.add_child(rebind_prompt)
+	var settings_footer := HBoxContainer.new()
+	settings_panel.add_child(settings_footer)
+	var back := Button.new()
+	back.text = "BACK"
+	back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	back.pressed.connect(_hide_settings)
+	settings_footer.add_child(back)
+	var reset := Button.new()
+	reset.text = "RESET DEFAULTS"
+	reset.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	reset.pressed.connect(_reset_settings)
+	settings_footer.add_child(reset)
 
 func _toggle_pause() -> void:
 	paused = not paused
@@ -295,7 +372,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		_toggle_pause()
 		get_viewport().set_input_as_handled()
-	elif event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_START:
+	elif event is InputEventJoypadButton and event.pressed and event.button_index == controller_pause_button:
 		_toggle_pause()
 		get_viewport().set_input_as_handled()
 	elif event is InputEventMouseButton and event.pressed:
@@ -328,13 +405,13 @@ func _physics_process(delta: float) -> void:
 		if absf(right_x) > controller_deadzone or absf(right_y) > controller_deadzone:
 			_aim(Vector2(right_x, right_y) * controller_aim_sensitivity * delta * 60.0)
 	fire_cooldown = maxf(0.0, fire_cooldown - delta)
-	var controller_fire := controller >= 0 and (Input.is_joy_button_pressed(controller, JOY_BUTTON_RIGHT_SHOULDER) or Input.is_joy_button_pressed(controller, JOY_BUTTON_X))
+	var controller_fire := controller >= 0 and (Input.is_joy_button_pressed(controller, controller_fire_button) or Input.is_joy_button_pressed(controller, controller_fire_alt_button))
 	if (Input.is_action_pressed("fire") or mobile_fire or controller_fire) and fire_cooldown <= 0:
 		_fire()
 		fire_cooldown = fire_rate
 	if not is_on_floor():
 		velocity.y -= gravity * delta
-	var controller_jump := controller >= 0 and Input.is_joy_button_pressed(controller, JOY_BUTTON_A)
+	var controller_jump := controller >= 0 and Input.is_joy_button_pressed(controller, controller_jump_button)
 	if (Input.is_action_just_pressed("jump") or mobile_jump or (controller_jump and not _controller_jump_was_down)) and is_on_floor():
 		velocity.y = jump_velocity
 	_controller_jump_was_down = controller_jump
@@ -347,7 +424,7 @@ func _physics_process(delta: float) -> void:
 		move = mobile_move
 	var direction := (transform.basis * Vector3(move.x, 0, move.y)).normalized()
 	var moving := direction.length() > 0.05
-	var controller_sprint := controller >= 0 and Input.is_joy_button_pressed(controller, JOY_BUTTON_LEFT_STICK)
+	var controller_sprint := controller >= 0 and Input.is_joy_button_pressed(controller, controller_sprint_button)
 	var speed := sprint_speed if (Input.is_action_pressed("sprint") or controller_sprint) and not OS.has_feature("mobile") else walk_speed
 	velocity.x = direction.x * speed if moving else move_toward(velocity.x, 0.0, walk_speed * 8 * delta)
 	velocity.z = direction.z * speed if moving else move_toward(velocity.z, 0.0, walk_speed * 8 * delta)
@@ -397,3 +474,207 @@ func _update_hud() -> void:
 		health_fill.color = Color(0.58, 0.61, 0.43) if health > 35 else Color(0.68, 0.39, 0.27)
 	if is_instance_valid(ammo_label):
 		ammo_label.text = "AMMO   %03d" % ammo
+
+func _show_settings() -> void:
+	waiting_for_bind = ""
+	waiting_for_controller_bind = ""
+	pause_menu_box.visible = false
+	settings_panel.visible = true
+	_refresh_bind_labels()
+
+func _hide_settings() -> void:
+	waiting_for_bind = ""
+	waiting_for_controller_bind = ""
+	settings_panel.visible = false
+	pause_menu_box.visible = true
+
+func _add_settings_section(parent: VBoxContainer, text_value: String) -> void:
+	var label := Label.new()
+	label.text = text_value
+	label.add_theme_font_size_override("font_size", 13)
+	label.add_theme_color_override("font_color", Color(0.67, 0.69, 0.61))
+	parent.add_child(label)
+	var line := HSeparator.new()
+	parent.add_child(line)
+
+func _add_slider_setting(parent: VBoxContainer, label_text: String, min_value: float, max_value: float, initial: float, step: float, callback: Callable) -> void:
+	var row := VBoxContainer.new()
+	row.add_theme_constant_override("separation", 2)
+	parent.add_child(row)
+	var heading := HBoxContainer.new()
+	row.add_child(heading)
+	var label := Label.new()
+	label.text = label_text
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading.add_child(label)
+	var value_label := Label.new()
+	value_label.text = "%.4f" % initial if step < 0.001 else "%.1f" % initial
+	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	heading.add_child(value_label)
+	var slider := HSlider.new()
+	slider.min_value = min_value
+	slider.max_value = max_value
+	slider.step = step
+	slider.value = initial
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider.value_changed.connect(func(value: float):
+		callback.call(value)
+		value_label.text = "%.4f" % value if step < 0.001 else "%.1f" % value
+	)
+	row.add_child(slider)
+
+func _set_mouse_sensitivity(value: float) -> void:
+	mouse_sensitivity = value
+
+func _set_controller_sensitivity(value: float) -> void:
+	controller_aim_sensitivity = value
+
+func _set_controller_deadzone(value: float) -> void:
+	controller_deadzone = value
+
+func _add_rebind_row(parent: VBoxContainer, label_text: String, action: String) -> void:
+	var row := HBoxContainer.new()
+	parent.add_child(row)
+	var label := Label.new()
+	label.text = label_text
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(label)
+	var button := Button.new()
+	button.custom_minimum_size.x = 150
+	button.text = _get_action_binding_text(action)
+	button.pressed.connect(func(): _begin_key_rebind(action))
+	row.add_child(button)
+	keybind_buttons[action] = button
+
+func _add_controller_rebind_row(parent: VBoxContainer, label_text: String, action: String) -> void:
+	var row := HBoxContainer.new()
+	parent.add_child(row)
+	var label := Label.new()
+	label.text = label_text
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(label)
+	var button := Button.new()
+	button.custom_minimum_size.x = 150
+	button.text = _get_controller_binding_text(action)
+	button.pressed.connect(func(): _begin_controller_rebind(action))
+	row.add_child(button)
+	controller_bind_buttons[action] = button
+
+func _get_action_binding_text(action: String) -> String:
+	var events := InputMap.action_get_events(action)
+	for event in events:
+		if event is InputEventKey:
+			return OS.get_keycode_string(event.physical_keycode if event.physical_keycode != 0 else event.keycode)
+		if event is InputEventMouseButton:
+			return "Mouse %d" % event.button_index
+	return "Unbound"
+
+func _get_controller_binding_text(action: String) -> String:
+	var button_index := JOY_BUTTON_A
+	match action:
+		"jump": button_index = controller_jump_button
+		"fire": button_index = controller_fire_button
+		"fire_alt": button_index = controller_fire_alt_button
+		"sprint": button_index = controller_sprint_button
+		"pause": button_index = controller_pause_button
+	return _joy_button_name(button_index)
+
+func _joy_button_name(button_index: int) -> String:
+	var names := {
+		JOY_BUTTON_A: "A / Cross", JOY_BUTTON_B: "B / Circle",
+		JOY_BUTTON_X: "X / Square", JOY_BUTTON_Y: "Y / Triangle",
+		JOY_BUTTON_LEFT_SHOULDER: "LB / L1", JOY_BUTTON_RIGHT_SHOULDER: "RB / R1",
+		JOY_BUTTON_BACK: "Back / Share", JOY_BUTTON_START: "Start / Options",
+		JOY_BUTTON_LEFT_STICK: "L3", JOY_BUTTON_RIGHT_STICK: "R3",
+		JOY_BUTTON_DPAD_UP: "D-pad Up", JOY_BUTTON_DPAD_DOWN: "D-pad Down",
+		JOY_BUTTON_DPAD_LEFT: "D-pad Left", JOY_BUTTON_DPAD_RIGHT: "D-pad Right"
+	}
+	return names.get(button_index, "Button %d" % button_index)
+
+func _begin_key_rebind(action: String) -> void:
+	waiting_for_bind = action
+	waiting_for_controller_bind = ""
+	rebind_prompt.text = "Press a key or mouse button for %s. ESC cancels." % action.replace("_", " ").to_upper()
+	_refresh_bind_labels()
+
+func _begin_controller_rebind(action: String) -> void:
+	waiting_for_controller_bind = action
+	waiting_for_bind = ""
+	rebind_prompt.text = "Press a controller button for %s. ESC cancels." % action.to_upper()
+	_refresh_bind_labels()
+
+func _refresh_bind_labels() -> void:
+	for action in keybind_buttons:
+		var button: Button = keybind_buttons[action]
+		button.text = "PRESS KEY..." if waiting_for_bind == action else _get_action_binding_text(action)
+	for action in controller_bind_buttons:
+		var button: Button = controller_bind_buttons[action]
+		button.text = "PRESS BUTTON..." if waiting_for_controller_bind == action else _get_controller_binding_text(action)
+
+func _input(event: InputEvent) -> void:
+	if waiting_for_bind != "":
+		if event is InputEventKey and event.pressed and not event.echo:
+			if event.keycode == KEY_ESCAPE:
+				waiting_for_bind = ""
+				rebind_prompt.text = "Binding cancelled."
+			else:
+				var action := waiting_for_bind
+				InputMap.action_erase_events(action)
+				var new_event := event.duplicate() as InputEventKey
+				new_event.echo = false
+				InputMap.action_add_event(action, new_event)
+				waiting_for_bind = ""
+				rebind_prompt.text = "Updated %s." % action
+			_refresh_bind_labels()
+			get_viewport().set_input_as_handled()
+		elif event is InputEventMouseButton and event.pressed:
+			var action := waiting_for_bind
+			InputMap.action_erase_events(action)
+			InputMap.action_add_event(action, event.duplicate())
+			waiting_for_bind = ""
+			rebind_prompt.text = "Updated %s." % action
+			_refresh_bind_labels()
+			get_viewport().set_input_as_handled()
+	elif waiting_for_controller_bind != "" and event is InputEventJoypadButton and event.pressed:
+		if event.button_index == JOY_BUTTON_START and waiting_for_controller_bind == "pause":
+			return
+		_set_controller_binding(waiting_for_controller_bind, event.button_index)
+		var changed := waiting_for_controller_bind
+		waiting_for_controller_bind = ""
+		rebind_prompt.text = "Updated controller %s." % changed
+		_refresh_bind_labels()
+		get_viewport().set_input_as_handled()
+
+func _set_controller_binding(action: String, button_index: int) -> void:
+	match action:
+		"jump": controller_jump_button = button_index
+		"fire": controller_fire_button = button_index
+		"fire_alt": controller_fire_alt_button = button_index
+		"sprint": controller_sprint_button = button_index
+		"pause": controller_pause_button = button_index
+
+func _reset_settings() -> void:
+	mouse_sensitivity = 0.0022
+	controller_aim_sensitivity = 2.3
+	controller_deadzone = 0.16
+	controller_jump_button = JOY_BUTTON_A
+	controller_fire_button = JOY_BUTTON_RIGHT_SHOULDER
+	controller_fire_alt_button = JOY_BUTTON_X
+	controller_sprint_button = JOY_BUTTON_LEFT_STICK
+	controller_pause_button = JOY_BUTTON_START
+	var defaults := {
+		"move_forward": KEY_W, "move_backward": KEY_S,
+		"move_left": KEY_A, "move_right": KEY_D,
+		"jump": KEY_SPACE, "sprint": KEY_SHIFT
+	}
+	for action in defaults:
+		InputMap.action_erase_events(action)
+		var key_event := InputEventKey.new()
+		key_event.physical_keycode = defaults[action]
+		InputMap.action_add_event(action, key_event)
+	InputMap.action_erase_events("fire")
+	var mouse_event := InputEventMouseButton.new()
+	mouse_event.button_index = MOUSE_BUTTON_LEFT
+	InputMap.action_add_event("fire", mouse_event)
+	_show_settings()
+	rebind_prompt.text = "Settings restored to defaults."
