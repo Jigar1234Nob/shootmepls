@@ -45,6 +45,7 @@ var gun_home := Vector3(0.34, -0.27, -0.62)
 var damage_flash: ColorRect
 
 func _ready() -> void:
+	_load_settings()
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	add_to_group("player")
 	_make_collision()
@@ -525,12 +526,15 @@ func _add_slider_setting(parent: VBoxContainer, label_text: String, min_value: f
 
 func _set_mouse_sensitivity(value: float) -> void:
 	mouse_sensitivity = value
+	_save_settings()
 
 func _set_controller_sensitivity(value: float) -> void:
 	controller_aim_sensitivity = value
+	_save_settings()
 
 func _set_controller_deadzone(value: float) -> void:
 	controller_deadzone = value
+	_save_settings()
 
 func _add_rebind_row(parent: VBoxContainer, label_text: String, action: String) -> void:
 	var row := HBoxContainer.new()
@@ -624,6 +628,7 @@ func _input(event: InputEvent) -> void:
 				new_event.echo = false
 				InputMap.action_add_event(action, new_event)
 				waiting_for_bind = ""
+				_save_settings()
 				rebind_prompt.text = "Updated %s." % action
 			_refresh_bind_labels()
 			get_viewport().set_input_as_handled()
@@ -632,6 +637,7 @@ func _input(event: InputEvent) -> void:
 			InputMap.action_erase_events(action)
 			InputMap.action_add_event(action, event.duplicate())
 			waiting_for_bind = ""
+			_save_settings()
 			rebind_prompt.text = "Updated %s." % action
 			_refresh_bind_labels()
 			get_viewport().set_input_as_handled()
@@ -655,6 +661,7 @@ func _set_controller_binding(action: String, button_index: int) -> void:
 		"fire_alt": controller_fire_alt_button = button_index
 		"sprint": controller_sprint_button = button_index
 		"pause": controller_pause_button = button_index
+	_save_settings()
 
 func _reset_settings() -> void:
 	mouse_sensitivity = 0.0022
@@ -679,5 +686,55 @@ func _reset_settings() -> void:
 	var mouse_event := InputEventMouseButton.new()
 	mouse_event.button_index = MOUSE_BUTTON_LEFT
 	InputMap.action_add_event("fire", mouse_event)
+	_save_settings()
 	_show_settings()
 	rebind_prompt.text = "Settings restored to defaults."
+
+func _load_settings() -> void:
+	var config := ConfigFile.new()
+	if config.load("user://settings.cfg") != OK:
+		return
+	mouse_sensitivity = float(config.get_value("aim", "mouse_sensitivity", mouse_sensitivity))
+	controller_aim_sensitivity = float(config.get_value("aim", "controller_sensitivity", controller_aim_sensitivity))
+	controller_deadzone = float(config.get_value("aim", "controller_deadzone", controller_deadzone))
+	controller_jump_button = int(config.get_value("controller", "jump", controller_jump_button))
+	controller_fire_button = int(config.get_value("controller", "fire", controller_fire_button))
+	controller_fire_alt_button = int(config.get_value("controller", "fire_alt", controller_fire_alt_button))
+	controller_sprint_button = int(config.get_value("controller", "sprint", controller_sprint_button))
+	controller_pause_button = int(config.get_value("controller", "pause", controller_pause_button))
+	for action in ["move_forward", "move_backward", "move_left", "move_right", "jump", "sprint", "fire"]:
+		var saved = config.get_value("keybinds", action, {})
+		if not saved is Dictionary:
+			continue
+		InputMap.action_erase_events(action)
+		if saved.get("type", "") == "key":
+			var key_event := InputEventKey.new()
+			key_event.physical_keycode = int(saved.get("physical_keycode", 0))
+			key_event.keycode = int(saved.get("keycode", 0))
+			InputMap.action_add_event(action, key_event)
+		elif saved.get("type", "") == "mouse":
+			var mouse_event := InputEventMouseButton.new()
+			mouse_event.button_index = int(saved.get("button_index", MOUSE_BUTTON_LEFT))
+			InputMap.action_add_event(action, mouse_event)
+
+func _save_settings() -> void:
+	var config := ConfigFile.new()
+	config.set_value("aim", "mouse_sensitivity", mouse_sensitivity)
+	config.set_value("aim", "controller_sensitivity", controller_aim_sensitivity)
+	config.set_value("aim", "controller_deadzone", controller_deadzone)
+	config.set_value("controller", "jump", controller_jump_button)
+	config.set_value("controller", "fire", controller_fire_button)
+	config.set_value("controller", "fire_alt", controller_fire_alt_button)
+	config.set_value("controller", "sprint", controller_sprint_button)
+	config.set_value("controller", "pause", controller_pause_button)
+	for action in ["move_forward", "move_backward", "move_left", "move_right", "jump", "sprint", "fire"]:
+		var saved := {}
+		for event in InputMap.action_get_events(action):
+			if event is InputEventKey:
+				saved = {"type": "key", "physical_keycode": event.physical_keycode, "keycode": event.keycode}
+				break
+			elif event is InputEventMouseButton:
+				saved = {"type": "mouse", "button_index": event.button_index}
+				break
+		config.set_value("keybinds", action, saved)
+	config.save("user://settings.cfg")
