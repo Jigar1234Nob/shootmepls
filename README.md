@@ -55,3 +55,30 @@ Press **Escape** or **Start / Options**, then choose **Settings**.
 This is an original game and does not use Counter-Strike assets, branding or maps. The project uses Godot's GL Compatibility renderer for mobile. iOS export still requires Godot export templates, Xcode, an Apple signing team and provisioning profile.
 
 **Created by Jigar Rai.**
+
+
+## Build an iOS IPA with GitHub Actions
+
+The repository includes an iOS export preset and a macOS GitHub Actions workflow at `.github/workflows/build-ios-ipa.yml`. It exports the Godot project, archives it with Xcode, signs it for Ad Hoc installation, and uploads `ShootMePls-iOS.ipa` as a workflow artifact.
+
+### One-time Apple signing setup
+
+You need an active Apple Developer Program membership and an **Ad Hoc** provisioning profile for bundle ID `au.jigar.shootmepls`. The profile must include the UDIDs of the iPhones/iPads that will install the IPA.
+
+Add these repository secrets under **Settings → Secrets and variables → Actions**:
+
+- `APPLE_TEAM_ID`: your 10-character Apple Developer Team ID.
+- `APPLE_CERTIFICATE_BASE64`: base64 contents of your Apple Distribution `.p12` certificate.
+- `APPLE_CERTIFICATE_PASSWORD`: password used when exporting that `.p12`.
+- `IOS_PROVISIONING_PROFILE_BASE64`: base64 contents of the Ad Hoc `.mobileprovision` profile.
+
+On macOS, generate the base64 values with `base64 -i Certificate.p12 | pbcopy` and `base64 -i Profile.mobileprovision | pbcopy`, then paste each into its matching GitHub secret. Keep the certificate and profile private.
+
+### Run it
+
+1. Open the repository's **Actions** tab.
+2. Select **Build iOS IPA**.
+3. Choose **Run workflow** on `main`.
+4. When the run finishes, open its summary and download the `ShootMePls-iOS-IPA` artifact.
+
+The workflow also runs on relevant pushes to `main`. This is an Ad Hoc signed IPA, not an App Store submission. The provisioning profile must include the target device UDIDs. Godot's iOS exporter requires macOS/Xcode and matching export templates; see the [official Godot iOS export guide](https://docs.godotengine.org/en/4.3/tutorials/export/exporting_for_ios.html).
