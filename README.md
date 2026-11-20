@@ -94,3 +94,13 @@ The workflow also runs on relevant pushes to `main`. This is an Ad Hoc signed IP
 - Main menu, controls page, gameplay HUD, pause menu, and settings are rendered in screen-space UI layers so they remain attached to the display rather than the 3D world.
 
 These are source-level changes. The project still needs to be opened and profiled in Godot on target hardware to confirm actual frame-time improvements.
+
+
+## Mobile builds
+
+GitHub Actions includes two manual build workflows:
+
+- **Build unsigned iOS IPA** creates `ShootMePls-iOS-unsigned.ipa` without Apple Developer secrets or an Apple Team ID. This is an unsigned package for testing/re-signing; it is **not directly installable** through Scarlet or the App Store until it is signed with a valid certificate and provisioning profile.
+- **Build Android APK** creates a debug-signed `ShootMePls-Android.apk` for ARM64 Android devices. Enable installation from the source you use before installing it.
+
+Open the repository's **Actions** tab, select the workflow, choose **Run workflow**, and download the matching artifact when the run completes. Builds have not been executed on a physical iOS or Android device as part of these source changes.
