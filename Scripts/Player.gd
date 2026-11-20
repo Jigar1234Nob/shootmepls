@@ -27,6 +27,7 @@ var weapon_home := Vector3(0.34, -0.29, -0.58)
 var bob_time := 0.0
 var recoil := 0.0
 var is_crouching := false
+var muzzle_flash: MeshInstance3D
 
 func _ready() -> void:
 	health = max_health
@@ -65,6 +66,19 @@ func _build_viewmodel() -> void:
 	_box(weapon_root, Vector3(0.02, 0.09, -0.17), Vector3(0.10, 0.055, 0.24), Color(0.16, 0.18, 0.19))
 	_box(weapon_root, Vector3(0.02, 0.12, -0.17), Vector3(0.055, 0.035, 0.13), Color(0.025, 0.03, 0.035))
 	_box(weapon_root, Vector3(0.02, -0.10, -0.12), Vector3(0.11, 0.12, 0.13), Color(0.055, 0.065, 0.075))
+	muzzle_flash = MeshInstance3D.new()
+	var flash_mesh := SphereMesh.new()
+	flash_mesh.radius = 0.075
+	flash_mesh.height = 0.15
+	muzzle_flash.mesh = flash_mesh
+	muzzle_flash.position = Vector3(0.02, -0.01, -0.76)
+	var flash_mat := StandardMaterial3D.new()
+	flash_mat.albedo_color = Color(1.0, 0.62, 0.12)
+	flash_mat.emission_enabled = true
+	flash_mat.emission = Color(1.0, 0.32, 0.04) * 2.5
+	muzzle_flash.material_override = flash_mat
+	muzzle_flash.visible = false
+	weapon_root.add_child(muzzle_flash)
 
 func _box(parent: Node3D, pos: Vector3, size: Vector3, color: Color) -> MeshInstance3D:
 	var mesh := BoxMesh.new()
@@ -131,6 +145,15 @@ func shoot() -> void:
 	ammo_in_clip -= 1
 	ammo_changed.emit(ammo_in_clip, reserve_ammo)
 	recoil = 0.075
+	muzzle_flash.visible = true
+	muzzle_flash.scale = Vector3.ONE
+	var flash_tween := create_tween()
+	flash_tween.tween_property(muzzle_flash, "scale", Vector3(1.8, 1.8, 1.8), 0.055)
+	var flash_timer := get_tree().create_timer(0.075)
+	flash_timer.timeout.connect(func():
+		if is_instance_valid(muzzle_flash):
+			muzzle_flash.visible = false
+	)
 	can_fire = false
 	var timer := get_tree().create_timer(fire_delay)
 	timer.timeout.connect(func(): can_fire = true)
