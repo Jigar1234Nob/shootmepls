@@ -12,8 +12,8 @@ func _ready() -> void:
 
 	var visual := MeshInstance3D.new()
 	var mesh := SphereMesh.new()
-	mesh.radius = 0.055
-	mesh.height = 0.11
+	mesh.radius = 0.035
+	mesh.height = 0.07
 	visual.mesh = mesh
 	var material := StandardMaterial3D.new()
 	material.albedo_color = Color(1.0, 0.82, 0.22)
@@ -25,9 +25,9 @@ func _ready() -> void:
 
 	var tracer := MeshInstance3D.new()
 	var tracer_mesh := BoxMesh.new()
-	tracer_mesh.size = Vector3(0.025, 0.025, 0.7)
+	tracer_mesh.size = Vector3(0.018, 0.018, 0.42)
 	tracer.mesh = tracer_mesh
-	tracer.position.z = 0.34
+	tracer.position.z = 0.21
 	var tracer_material := StandardMaterial3D.new()
 	tracer_material.albedo_color = Color(1.0, 0.72, 0.16)
 	tracer_material.emission_enabled = true
