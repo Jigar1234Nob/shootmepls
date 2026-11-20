@@ -1,6 +1,6 @@
 # Shoot Me Pls
 
-A simple Godot 4 third-person bean sandbox.
+A simple first-person bean target shooter built with Godot 4.
 
 ## Run
 1. Install Godot 4.
@@ -10,11 +10,17 @@ A simple Godot 4 third-person bean sandbox.
 
 ## Controls
 - WASD: move
-- Mouse: look around
+- Mouse: aim/look around
+- Left mouse button: automatic fire (fast bullets)
 - Space: jump
 - Shift: sprint
 - Escape: release the mouse
 - Click: capture the mouse again
 
-## Scene
-The current build is intentionally a simple open baseplate: green ground, blue sky, no walls, no enemies, and one green bean holding a gun.
+## Gameplay
+- Open grass field with a blue sky and no walls.
+- First-person view with a bean-green hand and gun.
+- Stationary practice targets have 100 HP.
+- Bullets deal 12.5 damage; each target takes 8 hits.
+- The health bar and HP number above each target update when hit.
+- Targets disappear when their health reaches zero.
