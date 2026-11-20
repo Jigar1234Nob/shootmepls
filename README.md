@@ -23,6 +23,14 @@ If the cursor is released, click the game window to recapture it.
 
 Standard Godot gamepad mappings are used. The game reads the first connected controller.
 
+## Settings
+Press **Escape** or **Start / Options**, then choose **Settings**.
+- Mouse look sensitivity slider.
+- Controller look sensitivity and stick deadzone sliders.
+- Rebind keyboard and mouse actions by selecting a bind and pressing the replacement key or mouse button.
+- Rebind controller jump, fire, alternate fire, sprint and pause by selecting a bind and pressing a controller button.
+- **Reset defaults** restores the original controls and sensitivity values.
+
 ## iPhone / touch
 - Left virtual joystick moves.
 - Drag the right side of the screen to aim.
