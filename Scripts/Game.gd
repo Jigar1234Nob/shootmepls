@@ -88,5 +88,6 @@ func _spawn_pickups() -> void:
 	for entry in positions:
 		var pickup = preload("res://Scripts/Pickup.gd").new()
 		pickup.pickup_type = entry[1]
+		pickup.amount = 35 if entry[1] == "health" else 30
 		pickup.position = entry[0]
 		add_child(pickup)
