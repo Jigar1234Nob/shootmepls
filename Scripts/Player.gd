@@ -2,9 +2,11 @@ extends CharacterBody3D
 class_name FPSPlayer
 
 @export var walk_speed := 7.0
+@export var sprint_speed := 10.0
 @export var jump_velocity := 5.5
-@export var mouse_sensitivity := 0.0025
+@export var mouse_sensitivity := 0.0022
 @export var fire_rate := 0.09
+
 var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 var camera_pivot: Node3D
 var camera: Camera3D
@@ -18,19 +20,25 @@ var mobile_move := Vector2.ZERO
 var mobile_fire := false
 var mobile_jump := false
 var hud: Label
+var health_bar: ColorRect
+var health_fill: ColorRect
+var ammo_label: Label
 var pause_layer: Control
 var paused := false
+var bob_time := 0.0
+var gun_home := Vector3(0.34, -0.27, -0.62)
+var damage_flash: ColorRect
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	add_to_group("player")
-	if not OS.has_feature("mobile"):
-		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	_make_collision()
 	_make_shadow()
 	_make_camera()
 	_make_gun()
 	_make_hud()
+	if not OS.has_feature("mobile"):
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _make_collision() -> void:
 	var col := CollisionShape3D.new()
@@ -61,23 +69,24 @@ func _make_camera() -> void:
 	camera_pivot.position.y = 1.48
 	add_child(camera_pivot)
 	camera = Camera3D.new()
-	camera.fov = 85
+	camera.fov = 82
 	camera.current = true
 	camera_pivot.add_child(camera)
 
 func _make_gun() -> void:
 	gun_visual = Node3D.new()
-	gun_visual.position = Vector3(0.34, -0.27, -0.62)
+	gun_visual.position = gun_home
 	camera.add_child(gun_visual)
-	_add_box(Vector3.ZERO, Vector3(0.19, 0.16, 0.48), Color(0.075, 0.09, 0.11))
-	_add_box(Vector3(0, 0.015, -0.34), Vector3(0.075, 0.075, 0.30), Color(0.035, 0.045, 0.055))
-	_add_box(Vector3(0, -0.14, 0.07), Vector3(0.12, 0.22, 0.14), Color(0.12, 0.14, 0.15))
+	_add_box(Vector3(0, -0.015, 0), Vector3(0.22, 0.18, 0.48), Color(0.075, 0.09, 0.12))
+	_add_box(Vector3(0, 0.025, -0.32), Vector3(0.085, 0.085, 0.34), Color(0.035, 0.045, 0.06))
+	_add_box(Vector3(0, 0.105, -0.12), Vector3(0.12, 0.035, 0.25), Color(0.12, 0.55, 0.95))
+	_add_box(Vector3(0, -0.14, 0.07), Vector3(0.13, 0.22, 0.15), Color(0.12, 0.14, 0.16))
 	var hand := MeshInstance3D.new()
 	var hand_mesh := SphereMesh.new()
-	hand_mesh.radius = 0.12
-	hand_mesh.height = 0.24
+	hand_mesh.radius = 0.13
+	hand_mesh.height = 0.25
 	hand.mesh = hand_mesh
-	hand.position = Vector3(-0.02, -0.12, 0.18)
+	hand.position = Vector3(-0.025, -0.12, 0.18)
 	var hand_mat := StandardMaterial3D.new()
 	hand_mat.albedo_color = Color(0.22, 0.78, 0.31)
 	hand.material_override = hand_mat
@@ -91,30 +100,77 @@ func _add_box(pos: Vector3, size: Vector3, color: Color) -> void:
 	part.position = pos
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = color
-	mat.metallic = 0.5
+	mat.metallic = 0.42
+	mat.roughness = 0.32
 	part.material_override = mat
 	gun_visual.add_child(part)
 
 func _make_hud() -> void:
 	var layer := CanvasLayer.new()
+	layer.layer = 5
 	add_child(layer)
 	var root := Control.new()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(root)
-	var cross := Label.new()
-	cross.text = "+"
-	cross.add_theme_font_size_override("font_size", 30)
-	cross.set_anchors_preset(Control.PRESET_CENTER)
-	cross.position = Vector2(-8, -20)
-	root.add_child(cross)
+
+	var top_panel := PanelContainer.new()
+	top_panel.position = Vector2(22, 20)
+	top_panel.custom_minimum_size = Vector2(260, 82)
+	top_panel.add_theme_stylebox_override("panel", _panel_style(Color(0.025, 0.045, 0.075, 0.88), Color(0.18, 0.45, 0.68, 0.8)))
+	root.add_child(top_panel)
+	var stats := VBoxContainer.new()
+	stats.add_theme_constant_override("separation", 7)
+	top_panel.add_child(stats)
+	var health_title := Label.new()
+	health_title.text = "VITALS"
+	health_title.add_theme_color_override("font_color", Color(0.56, 0.76, 0.9))
+	health_title.add_theme_font_size_override("font_size", 12)
+	stats.add_child(health_title)
 	hud = Label.new()
-	hud.position = Vector2(22, 18)
-	hud.add_theme_font_size_override("font_size", 22)
-	root.add_child(hud)
+	hud.add_theme_font_size_override("font_size", 17)
+	hud.add_theme_color_override("font_color", Color.WHITE)
+	stats.add_child(hud)
+	health_bar = ColorRect.new()
+	health_bar.custom_minimum_size = Vector2(220, 7)
+	health_bar.color = Color(0.12, 0.17, 0.22)
+	stats.add_child(health_bar)
+	health_fill = ColorRect.new()
+	health_fill.color = Color(0.25, 0.88, 0.48)
+	health_fill.size = Vector2(220, 7)
+	health_bar.add_child(health_fill)
+
+	var ammo_panel := PanelContainer.new()
+	ammo_panel.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	ammo_panel.position = Vector2(-220, -92)
+	ammo_panel.custom_minimum_size = Vector2(195, 70)
+	ammo_panel.add_theme_stylebox_override("panel", _panel_style(Color(0.025, 0.045, 0.075, 0.9), Color(0.18, 0.45, 0.68, 0.8)))
+	root.add_child(ammo_panel)
+	ammo_label = Label.new()
+	ammo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ammo_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	ammo_label.add_theme_font_size_override("font_size", 25)
+	ammo_label.add_theme_color_override("font_color", Color(0.95, 0.97, 1))
+	ammo_panel.add_child(ammo_label)
+
+	var cross := Label.new()
+	cross.text = "＋"
+	cross.add_theme_font_size_override("font_size", 25)
+	cross.add_theme_color_override("font_color", Color(0.9, 0.98, 1, 0.92))
+	cross.set_anchors_preset(Control.PRESET_CENTER)
+	cross.position = Vector2(-10, -19)
+	root.add_child(cross)
+
+	damage_flash = ColorRect.new()
+	damage_flash.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	damage_flash.color = Color(0.9, 0.08, 0.08, 0)
+	damage_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(damage_flash)
+
 	var pause_button := Button.new()
 	pause_button.text = "Ⅱ"
 	pause_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	pause_button.position = Vector2(-72, 16)
+	pause_button.position = Vector2(-76, 20)
 	pause_button.custom_minimum_size = Vector2(54, 48)
 	pause_button.pressed.connect(_toggle_pause)
 	root.add_child(pause_button)
@@ -123,6 +179,18 @@ func _make_hud() -> void:
 	_make_pause_menu(layer)
 	_update_hud()
 
+func _panel_style(fill: Color, border_color: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = fill
+	style.border_color = border_color
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(10)
+	style.content_margin_left = 14
+	style.content_margin_right = 14
+	style.content_margin_top = 10
+	style.content_margin_bottom = 10
+	return style
+
 func _add_touch_controls(root: Control) -> void:
 	var stick := Control.new()
 	stick.position = Vector2(20, -180)
@@ -130,39 +198,41 @@ func _add_touch_controls(root: Control) -> void:
 	stick.custom_minimum_size = Vector2(170, 160)
 	stick.mouse_filter = Control.MOUSE_FILTER_STOP
 	stick.draw.connect(func():
-		stick.draw_circle(Vector2(85, 80), 72, Color(0.08, 0.08, 0.08, 0.38))
-		stick.draw_circle(Vector2(85 + mobile_move.x * 45, 80 + mobile_move.y * 45), 28, Color(0.85, 0.9, 1, 0.65))
+		stick.draw_circle(Vector2(85, 80), 72, Color(0.04, 0.08, 0.12, 0.42))
+		stick.draw_arc(Vector2(85, 80), 72, 0, TAU, 48, Color(0.55, 0.75, 0.9, 0.5), 2)
+		stick.draw_circle(Vector2(85 + mobile_move.x * 45, 80 + mobile_move.y * 45), 28, Color(0.28, 0.72, 1, 0.72))
 	)
 	stick.gui_input.connect(func(event):
 		if event is InputEventScreenTouch:
-			mobile_move = Vector2.ZERO
+			if not event.pressed:
+				mobile_move = Vector2.ZERO
+			else:
+				mobile_move = ((event.position - Vector2(85, 80)) / 65.0).limit_length(1.0)
 			stick.queue_redraw()
 		elif event is InputEventScreenDrag:
-			mobile_move = ((event.position - stick.global_position - Vector2(85, 80)) / 65.0).limit_length(1.0)
+			mobile_move = ((event.position - Vector2(85, 80)) / 65.0).limit_length(1.0)
 			stick.queue_redraw()
 	)
 	root.add_child(stick)
+
 	var fire := Button.new()
 	fire.text = "FIRE"
 	fire.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	fire.position = Vector2(-145, -160)
-	fire.custom_minimum_size = Vector2(120, 95)
+	fire.position = Vector2(-150, -165)
+	fire.custom_minimum_size = Vector2(122, 92)
+	fire.add_theme_font_size_override("font_size", 20)
 	fire.button_down.connect(func(): mobile_fire = true)
 	fire.button_up.connect(func(): mobile_fire = false)
 	root.add_child(fire)
+
 	var jump := Button.new()
 	jump.text = "JUMP"
 	jump.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	jump.position = Vector2(-145, -55)
-	jump.custom_minimum_size = Vector2(105, 50)
+	jump.position = Vector2(-150, -62)
+	jump.custom_minimum_size = Vector2(112, 48)
 	jump.button_down.connect(func(): mobile_jump = true)
 	jump.button_up.connect(func(): mobile_jump = false)
 	root.add_child(jump)
-	var aim_hint := Label.new()
-	aim_hint.text = "Drag right side to aim"
-	aim_hint.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	aim_hint.position = Vector2(-230, -28)
-	root.add_child(aim_hint)
 
 func _make_pause_menu(layer: CanvasLayer) -> void:
 	pause_layer = Control.new()
@@ -173,29 +243,39 @@ func _make_pause_menu(layer: CanvasLayer) -> void:
 	layer.add_child(pause_layer)
 	var shade := ColorRect.new()
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	shade.color = Color(0, 0, 0, 0.72)
+	shade.color = Color(0.008, 0.018, 0.035, 0.82)
 	pause_layer.add_child(shade)
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(300, 230)
+	panel.custom_minimum_size = Vector2(330, 250)
 	panel.set_anchors_preset(Control.PRESET_CENTER)
-	panel.position = Vector2(-150, -115)
+	panel.position = Vector2(-165, -125)
+	panel.add_theme_stylebox_override("panel", _panel_style(Color(0.035, 0.065, 0.1, 0.98), Color(0.2, 0.55, 0.82)))
 	pause_layer.add_child(panel)
 	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 12)
 	panel.add_child(column)
 	var title := Label.new()
 	title.text = "PAUSED"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 27)
+	title.add_theme_color_override("font_color", Color(0.85, 0.94, 1))
 	column.add_child(title)
+	var hint := Label.new()
+	hint.text = "Take a breather. The beans won't."
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.add_theme_font_size_override("font_size", 12)
+	hint.add_theme_color_override("font_color", Color(0.6, 0.72, 0.82))
+	column.add_child(hint)
 	var resume := Button.new()
-	resume.text = "Resume"
+	resume.text = "RESUME  ·  ESC"
 	resume.pressed.connect(_toggle_pause)
 	column.add_child(resume)
 	var restart := Button.new()
-	restart.text = "Restart"
+	restart.text = "RESTART"
 	restart.pressed.connect(func(): get_tree().paused = false; get_tree().reload_current_scene())
 	column.add_child(restart)
 	var quit := Button.new()
-	quit.text = "Quit"
+	quit.text = "QUIT"
 	quit.pressed.connect(func(): get_tree().quit())
 	column.add_child(quit)
 
@@ -203,14 +283,22 @@ func _toggle_pause() -> void:
 	paused = not paused
 	get_tree().paused = paused
 	pause_layer.visible = paused
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if paused else Input.MOUSE_MODE_CAPTURED
+	if OS.has_feature("mobile"):
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	else:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if paused else Input.MOUSE_MODE_CAPTURED
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		_toggle_pause()
-	elif event is InputEventMouseButton and event.pressed and not paused and Input.mouse_mode == Input.MOUSE_MODE_VISIBLE:
-		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-	elif event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		get_viewport().set_input_as_handled()
+	elif event is InputEventMouseButton and event.pressed:
+		if event.button_index == MOUSE_BUTTON_RIGHT:
+			if not paused:
+				Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED else Input.MOUSE_MODE_CAPTURED
+		elif event.button_index == MOUSE_BUTTON_LEFT and not paused and Input.mouse_mode == Input.MOUSE_MODE_VISIBLE and not OS.has_feature("mobile"):
+			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	elif event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and not paused:
 		_aim(event.relative)
 	elif event is InputEventScreenDrag and event.position.x > get_viewport().get_visible_rect().size.x * 0.38:
 		_aim(event.relative)
@@ -235,9 +323,17 @@ func _physics_process(delta: float) -> void:
 	if mobile_move.length() > 0.08:
 		move = mobile_move
 	var direction := (transform.basis * Vector3(move.x, 0, move.y)).normalized()
-	velocity.x = direction.x * walk_speed if direction != Vector3.ZERO else move_toward(velocity.x, 0.0, walk_speed * 8 * delta)
-	velocity.z = direction.z * walk_speed if direction != Vector3.ZERO else move_toward(velocity.z, 0.0, walk_speed * 8 * delta)
+	var moving := direction.length() > 0.05
+	var speed := sprint_speed if Input.is_action_pressed("sprint") and not OS.has_feature("mobile") else walk_speed
+	velocity.x = direction.x * speed if moving else move_toward(velocity.x, 0.0, walk_speed * 8 * delta)
+	velocity.z = direction.z * speed if moving else move_toward(velocity.z, 0.0, walk_speed * 8 * delta)
 	move_and_slide()
+	if moving and is_on_floor():
+		bob_time += delta * 10.0
+	else:
+		bob_time = move_toward(bob_time, 0.0, delta * 5.0)
+	if is_instance_valid(gun_visual):
+		gun_visual.position = gun_home + Vector3(0, sin(bob_time) * 0.012, absf(cos(bob_time)) * 0.012)
 
 func _fire() -> void:
 	if ammo <= 0:
@@ -252,13 +348,17 @@ func _fire() -> void:
 func take_damage(amount: float) -> void:
 	health = maxf(0, health - amount)
 	_update_hud()
+	if is_instance_valid(damage_flash):
+		damage_flash.color = Color(0.9, 0.08, 0.08, 0.22)
+		var tween := create_tween()
+		tween.tween_property(damage_flash, "color:a", 0.0, 0.28)
 	if health <= 0:
 		paused = true
 		get_tree().paused = true
 		pause_layer.visible = true
 
 func heal(amount: float) -> void:
-	health = minf(100, health + amount)
+	health = minf(max_health, health + amount)
 	_update_hud()
 
 func add_ammo(amount: int) -> void:
@@ -267,4 +367,9 @@ func add_ammo(amount: int) -> void:
 
 func _update_hud() -> void:
 	if is_instance_valid(hud):
-		hud.text = "HP %d / 100     AMMO %d" % [int(health), ammo]
+		hud.text = "HEALTH   %d%%" % int(health)
+	if is_instance_valid(health_fill):
+		health_fill.size.x = 220.0 * (health / max_health)
+		health_fill.color = Color(0.25, 0.88, 0.48) if health > 35 else Color(1.0, 0.32, 0.22)
+	if is_instance_valid(ammo_label):
+		ammo_label.text = "AMMO   %03d" % ammo
