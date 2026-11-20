@@ -29,10 +29,11 @@ func _ready() -> void:
 	body_mesh.mesh = bean
 	body_mesh.position.y = 0.78
 	body_mesh.scale = Vector3(0.88, 1.0, 0.78)
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.18, randf_range(0.48, 0.85), randf_range(0.28, 0.55))
-	mat.roughness = 0.78
-	mat.metallic = 0.02
+	var mat := ShaderMaterial.new()
+	mat.shader = load("res://Materials/ProceduralSurface.gdshader")
+	mat.set_shader_parameter("base_color", Color(0.18, randf_range(0.48, 0.85), randf_range(0.28, 0.55)))
+	mat.set_shader_parameter("roughness_value", 0.78)
+	mat.set_shader_parameter("metallic_value", 0.02)
 	body_mesh.material_override = mat
 	add_child(body_mesh)
 	_add_face()
