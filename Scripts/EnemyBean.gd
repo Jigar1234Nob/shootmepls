@@ -1,6 +1,6 @@
 extends CharacterBody3D
 
-signal defeated
+signal defeated(enemy: Node)
 
 @export var is_boss := false
 @export var max_health := 100.0
@@ -109,7 +109,7 @@ func take_damage(amount: float) -> void:
 	bar.visible = true
 	_update_bar()
 	if health <= 0.0:
-		defeated.emit()
+		defeated.emit(self)
 		queue_free()
 
 func _update_bar() -> void:
