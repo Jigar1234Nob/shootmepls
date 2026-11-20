@@ -94,20 +94,24 @@ func _make_gun() -> void:
 	gun_visual = Node3D.new()
 	gun_visual.position = gun_home
 	camera.add_child(gun_visual)
-	# Procedural compact rifle model with stock, receiver, barrel, magazine and sights.
-	var steel := Color(0.075, 0.082, 0.078)
-	var polymer := Color(0.035, 0.040, 0.038)
-	var edge := Color(0.13, 0.14, 0.13)
-	_add_box(Vector3(0, -0.015, -0.02), Vector3(0.20, 0.17, 0.43), steel)
-	_add_box(Vector3(0, 0.005, -0.34), Vector3(0.105, 0.105, 0.48), polymer)
-	_add_box(Vector3(0, -0.015, -0.64), Vector3(0.075, 0.075, 0.22), steel)
-	_add_box(Vector3(0, -0.13, 0.12), Vector3(0.16, 0.13, 0.30), polymer)
-	_add_box(Vector3(0, -0.18, -0.03), Vector3(0.115, 0.25, 0.15), polymer)
-	_add_box(Vector3(0, 0.105, -0.27), Vector3(0.13, 0.055, 0.24), edge)
-	_add_box(Vector3(0, 0.15, -0.27), Vector3(0.085, 0.045, 0.14), polymer)
-	_add_box(Vector3(0, 0.115, -0.02), Vector3(0.035, 0.045, 0.075), edge)
-	_add_box(Vector3(0, 0.095, -0.59), Vector3(0.025, 0.055, 0.045), edge)
-	_add_box(Vector3(0, -0.105, -0.24), Vector3(0.105, 0.23, 0.16), polymer)
+	# Procedural M14-inspired battle rifle: walnut stock, long barrel, gas system,
+	# steel receiver, curved magazine, front sight and rear aperture.
+	var steel := Color(0.105, 0.115, 0.12)
+	var dark_steel := Color(0.045, 0.052, 0.055)
+	var walnut := Color(0.19, 0.105, 0.052)
+	var walnut_edge := Color(0.27, 0.15, 0.075)
+	_add_box(Vector3(0, -0.045, 0.16), Vector3(0.17, 0.16, 0.58), walnut)
+	_add_box(Vector3(0, -0.01, -0.12), Vector3(0.19, 0.17, 0.43), steel)
+	_add_box(Vector3(0, 0.015, -0.43), Vector3(0.075, 0.075, 0.68), dark_steel)
+	_add_box(Vector3(0, 0.015, -0.78), Vector3(0.052, 0.052, 0.20), steel)
+	_add_box(Vector3(0, -0.12, -0.12), Vector3(0.115, 0.26, 0.17), walnut_edge)
+	_add_box(Vector3(0, -0.19, -0.22), Vector3(0.105, 0.23, 0.19), dark_steel)
+	_add_box(Vector3(0, -0.115, -0.43), Vector3(0.095, 0.12, 0.40), walnut)
+	_add_box(Vector3(0, 0.105, -0.20), Vector3(0.11, 0.055, 0.36), steel)
+	_add_box(Vector3(0, 0.15, -0.20), Vector3(0.035, 0.06, 0.06), dark_steel)
+	_add_box(Vector3(0, 0.095, -0.83), Vector3(0.035, 0.12, 0.045), dark_steel)
+	_add_box(Vector3(0, 0.10, 0.02), Vector3(0.035, 0.075, 0.045), dark_steel)
+	_add_box(Vector3(0, -0.025, -0.53), Vector3(0.045, 0.045, 0.42), steel)
 
 func _add_box(pos: Vector3, size: Vector3, color: Color) -> void:
 	var part := MeshInstance3D.new()
@@ -469,7 +473,7 @@ func _fire() -> void:
 	var bullet = preload("res://Scripts/Bullet.gd").new()
 	bullet.direction = -camera.global_transform.basis.z
 	# Place the projectile at the rifle's muzzle, not inside the camera/player.
-	var muzzle_local := gun_home + Vector3(0.0, 0.015, -0.88)
+	var muzzle_local := gun_home + Vector3(0.0, 0.015, -0.94)
 	bullet.global_position = camera.to_global(muzzle_local)
 	get_tree().current_scene.add_child(bullet)
 
