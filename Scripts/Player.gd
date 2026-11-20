@@ -38,6 +38,7 @@ var hud: Label
 var health_bar: ColorRect
 var health_fill: ColorRect
 var ammo_label: Label
+var wave_hud: Label
 var pause_layer: Control
 var paused := false
 var bob_time := 0.0
@@ -169,6 +170,15 @@ func _make_hud() -> void:
 	ammo_label.add_theme_color_override("font_color", Color(0.84, 0.84, 0.78))
 	ammo_panel.add_child(ammo_label)
 
+	wave_hud = Label.new()
+	wave_hud.text = "WAVE  01"
+	wave_hud.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	wave_hud.position = Vector2(0, 22)
+	wave_hud.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	wave_hud.add_theme_font_size_override("font_size", 18)
+	wave_hud.add_theme_color_override("font_color", Color(0.82, 0.84, 0.78))
+	root.add_child(wave_hud)
+
 	var cross := Label.new()
 	cross.text = "＋"
 	cross.add_theme_font_size_override("font_size", 25)
@@ -299,8 +309,15 @@ func _make_pause_menu(layer: CanvasLayer) -> void:
 	restart.pressed.connect(func(): get_tree().paused = false; get_tree().reload_current_scene())
 	pause_menu_box.add_child(restart)
 	var quit := Button.new()
-	quit.text = "QUIT"
-	quit.pressed.connect(func(): get_tree().quit())
+	quit.text = "QUIT TO MAIN MENU"
+	quit.pressed.connect(func():
+		get_tree().paused = false
+		var game_root := get_tree().current_scene
+		if game_root and game_root.has_method("return_to_menu"):
+			game_root.return_to_menu()
+		else:
+			get_tree().reload_current_scene()
+	)
 	pause_menu_box.add_child(quit)
 
 	settings_panel = VBoxContainer.new()
@@ -396,6 +413,13 @@ func _aim(delta: Vector2) -> void:
 	pitch = clamp(pitch - delta.y * mouse_sensitivity, -1.35, 1.35)
 	camera_pivot.rotation.x = pitch
 
+func _aim_controller(stick: Vector2, delta: float) -> void:
+	# Controller sensitivity is an independent multiplier, not the mouse slider.
+	var response := 0.0022 * controller_aim_sensitivity * 60.0 * delta
+	rotate_y(-stick.x * response)
+	pitch = clamp(pitch - stick.y * response, -1.35, 1.35)
+	camera_pivot.rotation.x = pitch
+
 func _physics_process(delta: float) -> void:
 	if paused:
 		return
@@ -404,7 +428,7 @@ func _physics_process(delta: float) -> void:
 		var right_x := Input.get_joy_axis(controller, JOY_AXIS_RIGHT_X)
 		var right_y := Input.get_joy_axis(controller, JOY_AXIS_RIGHT_Y)
 		if absf(right_x) > controller_deadzone or absf(right_y) > controller_deadzone:
-			_aim(Vector2(right_x, right_y) * controller_aim_sensitivity * delta * 60.0)
+			_aim_controller(Vector2(right_x, right_y), delta)
 	fire_cooldown = maxf(0.0, fire_cooldown - delta)
 	var controller_fire := controller >= 0 and (Input.is_joy_button_pressed(controller, controller_fire_button) or Input.is_joy_button_pressed(controller, controller_fire_alt_button))
 	if (Input.is_action_pressed("fire") or mobile_fire or controller_fire) and fire_cooldown <= 0:
@@ -444,7 +468,9 @@ func _fire() -> void:
 	_update_hud()
 	var bullet = preload("res://Scripts/Bullet.gd").new()
 	bullet.direction = -camera.global_transform.basis.z
-	bullet.global_position = camera.global_position + bullet.direction * 0.85
+	# Place the projectile at the rifle's muzzle, not inside the camera/player.
+	var muzzle_local := gun_home + Vector3(0.0, 0.015, -0.88)
+	bullet.global_position = camera.to_global(muzzle_local)
 	get_tree().current_scene.add_child(bullet)
 
 func take_damage(amount: float) -> void:
@@ -455,9 +481,11 @@ func take_damage(amount: float) -> void:
 		var tween := create_tween()
 		tween.tween_property(damage_flash, "color:a", 0.0, 0.28)
 	if health <= 0:
-		paused = true
-		get_tree().paused = true
-		pause_layer.visible = true
+		set_physics_process(false)
+		set_process_unhandled_input(false)
+		var game_root := get_tree().current_scene
+		if game_root and game_root.has_method("player_died"):
+			game_root.player_died()
 
 func heal(amount: float) -> void:
 	health = minf(max_health, health + amount)
@@ -466,6 +494,10 @@ func heal(amount: float) -> void:
 func add_ammo(amount: int) -> void:
 	ammo += amount
 	_update_hud()
+
+func set_wave(wave: int) -> void:
+	if is_instance_valid(wave_hud):
+		wave_hud.text = "WAVE  %02d" % wave
 
 func _update_hud() -> void:
 	if is_instance_valid(hud):
