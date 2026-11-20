@@ -3,6 +3,10 @@ var player: CharacterBody3D
 var main_menu: Control
 var menu_status: Label
 var match_started := false
+var current_wave := 1
+var wave_transition := false
+var wave_label: Label
+var controls_page: Control
 
 func _ready() -> void:
 	_build_atmosphere()
@@ -74,6 +78,12 @@ func _show_start_screen() -> void:
 	var controls := _menu_button("CONTROLS", false)
 	controls.pressed.connect(_show_controls)
 	menu_items.add_child(controls)
+	var credits := Label.new()
+	credits.text = "CREATED BY JIGAR RAI"
+	credits.position = Vector2(78, 640)
+	credits.add_theme_font_size_override("font_size", 11)
+	credits.add_theme_color_override("font_color", Color(0.55, 0.58, 0.51))
+	main_menu.add_child(credits)
 	var quit := _menu_button("QUIT TO DESKTOP", false)
 	quit.pressed.connect(func(): get_tree().quit())
 	menu_items.add_child(quit)
@@ -153,7 +163,39 @@ func _menu_button(label_text: String, highlighted: bool) -> Button:
 	return button
 
 func _show_controls() -> void:
-	menu_status.text = "WASD MOVE  /  MOUSE AIM  /  LEFT CLICK FIRE  /  SPACE JUMP  /  SHIFT SPRINT  /  ESC PAUSE"
+	main_menu.visible = false
+	controls_page = Control.new()
+	controls_page.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(controls_page)
+	var background := ColorRect.new()
+	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	background.color = Color(0.018, 0.024, 0.025)
+	controls_page.add_child(background)
+	var heading := Label.new()
+	heading.text = "FIELD MANUAL  /  CONTROLS"
+	heading.position = Vector2(76, 58)
+	heading.add_theme_font_size_override("font_size", 34)
+	heading.add_theme_color_override("font_color", Color(0.86, 0.88, 0.82))
+	controls_page.add_child(heading)
+	var details := Label.new()
+	details.text = "KEYBOARD & MOUSE\\nWASD          MOVE\\nMOUSE         LOOK / AIM\\nLEFT CLICK    FIRE\\nSPACE         JUMP\\nLEFT SHIFT    SPRINT\\nESC           PAUSE\\n\\nCONTROLLER\\nLEFT STICK    MOVE\\nRIGHT STICK   LOOK / AIM\\nA / CROSS     JUMP\\nRB / R1       FIRE\\nX / SQUARE    ALTERNATE FIRE\\nL3            SPRINT\\nSTART         PAUSE\\n\\nSURVIVAL\\nCollect limited ammunition and medical supplies.\\nEvery fifth wave contains a heavy boss with five times the health."
+	details.position = Vector2(82, 145)
+	details.add_theme_font_size_override("font_size", 19)
+	details.add_theme_color_override("font_color", Color(0.72, 0.75, 0.69))
+	controls_page.add_child(details)
+	var back := _menu_button("BACK TO MAIN MENU", true)
+	back.position = Vector2(82, 610)
+	back.pressed.connect(func():
+		controls_page.queue_free()
+		main_menu.visible = true
+	)
+	controls_page.add_child(back)
+	var credit := Label.new()
+	credit.text = "SHOOT ME PLS  /  CREATED BY JIGAR RAI"
+	credit.position = Vector2(790, 650)
+	credit.add_theme_font_size_override("font_size", 12)
+	credit.add_theme_color_override("font_color", Color(0.52, 0.55, 0.49))
+	controls_page.add_child(credit)
 
 func _start_match() -> void:
 	if match_started:
@@ -163,11 +205,76 @@ func _start_match() -> void:
 	_build_floor()
 	_build_perimeter()
 	_build_cover()
-	_spawn_enemies()
-	_spawn_pickups()
 	player = preload("res://Scripts/Player.gd").new()
 	add_child(player)
+	current_wave = 1
+	_spawn_wave(current_wave)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+func _spawn_wave(wave: int) -> void:
+	wave_transition = false
+	if is_instance_valid(player) and player.has_method("set_wave"):
+		player.set_wave(wave)
+	var count := mini(6 + (wave - 1) * 2, 30)
+	var boss_wave := wave % 5 == 0
+	for i in range(count):
+		var enemy = preload("res://Scripts/EnemyBean.gd").new()
+		enemy.position = _wave_spawn_position(i, count)
+		enemy.max_health = 500.0 if boss_wave and i == 0 else 100.0 + float(wave - 1) * 12.0
+		enemy.is_boss = boss_wave and i == 0
+		enemy.move_speed = 2.65 if enemy.is_boss else minf(3.1 + float(wave - 1) * 0.08, 4.8)
+		enemy.defeated.connect(_on_enemy_defeated)
+		add_child(enemy)
+	_spawn_wave_pickups(wave)
+
+func _wave_spawn_position(index: int, total: int) -> Vector3:
+	var angle := TAU * float(index) / float(maxi(total, 1)) + randf_range(-0.18, 0.18)
+	var radius := randf_range(22.0, 31.0)
+	return Vector3(cos(angle) * radius, 0.0, sin(angle) * radius)
+
+func _spawn_wave_pickups(wave: int) -> void:
+	# Supplies are deliberately scarce and are replenished only at wave start.
+	var ammo_count := 1 if wave < 4 else 2
+	var health_count := 1 if wave < 3 else (2 if wave % 5 == 0 else 1)
+	for i in range(ammo_count):
+		var pickup = preload("res://Scripts/Pickup.gd").new()
+		pickup.pickup_type = "ammo"
+		pickup.amount = 18 if wave < 5 else 14
+		pickup.position = Vector3(randf_range(-27, 27), 0, randf_range(-27, 27))
+		add_child(pickup)
+	for i in range(health_count):
+		var pickup = preload("res://Scripts/Pickup.gd").new()
+		pickup.pickup_type = "health"
+		pickup.amount = 25
+		pickup.position = Vector3(randf_range(-27, 27), 0, randf_range(-27, 27))
+		add_child(pickup)
+
+func _on_enemy_defeated() -> void:
+	call_deferred("_check_wave_clear")
+
+func _check_wave_clear() -> void:
+	if not match_started or wave_transition:
+		return
+	if get_tree().get_nodes_in_group("enemies").is_empty():
+		wave_transition = true
+		current_wave += 1
+		await get_tree().create_timer(2.0).timeout
+		if is_instance_valid(player) and player.health > 0:
+			_spawn_wave(current_wave)
+
+func player_died() -> void:
+	if not match_started:
+		return
+	match_started = false
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	await get_tree().create_timer(2.0).timeout
+	get_tree().paused = false
+	get_tree().reload_current_scene()
+
+func return_to_menu() -> void:
+	get_tree().paused = false
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	get_tree().reload_current_scene()
 
 func _build_atmosphere() -> void:
 	var world := WorldEnvironment.new()
@@ -175,21 +282,21 @@ func _build_atmosphere() -> void:
 	env.background_mode = Environment.BG_SKY
 	var sky := Sky.new()
 	var material := ProceduralSkyMaterial.new()
-	material.sky_top_color = Color(0.055, 0.068, 0.075)
-	material.sky_horizon_color = Color(0.16, 0.17, 0.16)
-	material.ground_bottom_color = Color(0.045, 0.05, 0.048)
-	material.ground_horizon_color = Color(0.13, 0.14, 0.13)
+	material.sky_top_color = Color(0.16, 0.34, 0.55)
+	material.sky_horizon_color = Color(0.48, 0.61, 0.68)
+	material.ground_bottom_color = Color(0.12, 0.14, 0.15)
+	material.ground_horizon_color = Color(0.38, 0.43, 0.45)
 	sky.sky_material = material
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.42, 0.44, 0.41)
+	env.ambient_light_color = Color(0.52, 0.56, 0.60)
 	env.ambient_light_energy = 0.55
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	world.environment = env
 	add_child(world)
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-48, -28, 0)
-	sun.light_color = Color(0.72, 0.75, 0.72)
+	sun.light_color = Color(0.82, 0.86, 0.91)
 	sun.light_energy = 0.72
 	sun.shadow_enabled = true
 	add_child(sun)
@@ -254,22 +361,3 @@ func _material(color: Color, metal: float, rough: float) -> StandardMaterial3D:
 	mat.roughness = rough
 	return mat
 
-func _spawn_enemies() -> void:
-	var positions := [Vector3(-15, 0, -18), Vector3(12, 0, -22), Vector3(25, 0, 10), Vector3(-25, 0, 12), Vector3(8, 0, 25), Vector3(-8, 0, -30)]
-	for pos in positions:
-		var enemy = preload("res://Scripts/EnemyBean.gd").new()
-		enemy.position = pos
-		add_child(enemy)
-
-func _spawn_pickups() -> void:
-	var positions := [
-		[Vector3(-5, 0, -10), "ammo"], [Vector3(18, 0, -5), "health"],
-		[Vector3(-20, 0, 0), "ammo"], [Vector3(0, 0, 20), "health"],
-		[Vector3(28, 0, -25), "ammo"], [Vector3(-28, 0, 28), "health"]
-	]
-	for entry in positions:
-		var pickup = preload("res://Scripts/Pickup.gd").new()
-		pickup.pickup_type = entry[1]
-		pickup.amount = 35 if entry[1] == "health" else 30
-		pickup.position = entry[0]
-		add_child(pickup)
