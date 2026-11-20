@@ -1,6 +1,6 @@
 extends CharacterBody3D
 @export var max_health := 100.0
-@export var move_speed := 3.4
+@export var move_speed := 3.1
 var health := 100.0
 var player: Node3D
 var attack_cooldown := 0.0
@@ -17,29 +17,46 @@ func _ready() -> void:
 	col.shape = shape
 	col.position.y = 0.9
 	add_child(col)
+	# Featureless bean. No eyes, mouth, pupils or face decals.
 	var body := MeshInstance3D.new()
 	var bean := SphereMesh.new()
 	bean.radius = 0.68
 	bean.height = 1.7
 	body.mesh = bean
 	body.position.y = 0.9
-	body.scale = Vector3(0.85, 1, 0.82)
+	body.scale = Vector3(0.85, 1.0, 0.82)
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.86, 0.30, 0.19)
+	mat.albedo_color = Color(0.22, 0.24, 0.21)
+	mat.roughness = 0.92
 	body.material_override = mat
 	add_child(body)
+	_add_gear(Vector3(0, 0.78, -0.49), Vector3(0.62, 0.48, 0.12), Color(0.075, 0.082, 0.078))
+	_add_gear(Vector3(0, 0.42, -0.50), Vector3(0.48, 0.16, 0.10), Color(0.12, 0.13, 0.12))
 	bar = Label3D.new()
-	bar.position.y = 2.1
+	bar.position.y = 2.05
 	bar.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	bar.font_size = 42
-	bar.outline_size = 8
-	bar.pixel_size = 0.003
+	bar.font_size = 34
+	bar.outline_size = 7
+	bar.pixel_size = 0.0028
 	bar.no_depth_test = true
+	bar.modulate = Color(0.76, 0.78, 0.72)
 	add_child(bar)
 	_update_bar()
 
+func _add_gear(pos: Vector3, size: Vector3, color: Color) -> void:
+	var mesh := MeshInstance3D.new()
+	var box := BoxMesh.new()
+	box.size = size
+	mesh.mesh = box
+	mesh.position = pos
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = color
+	mat.roughness = 0.88
+	mesh.material_override = mat
+	add_child(mesh)
+
 func _physics_process(delta: float) -> void:
-	attack_cooldown = maxf(0, attack_cooldown - delta)
+	attack_cooldown = maxf(0.0, attack_cooldown - delta)
 	if player == null or not is_instance_valid(player):
 		player = get_tree().get_first_node_in_group("player")
 		if player == null:
@@ -52,9 +69,9 @@ func _physics_process(delta: float) -> void:
 		velocity.z = dir.z * move_speed
 		look_at(Vector3(player.global_position.x, global_position.y, player.global_position.z))
 	else:
-		velocity.x = move_toward(velocity.x, 0, move_speed * 5 * delta)
-		velocity.z = move_toward(velocity.z, 0, move_speed * 5 * delta)
-		if attack_cooldown <= 0:
+		velocity.x = move_toward(velocity.x, 0.0, move_speed * 5.0 * delta)
+		velocity.z = move_toward(velocity.z, 0.0, move_speed * 5.0 * delta)
+		if attack_cooldown <= 0.0:
 			player.take_damage(12)
 			attack_cooldown = 1.0
 	if not is_on_floor():
@@ -62,12 +79,14 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 
 func take_damage(amount: float) -> void:
-	health = maxf(0, health - amount)
+	health = maxf(0.0, health - amount)
 	_update_bar()
-	if health <= 0:
+	if health <= 0.0:
 		queue_free()
 
 func _update_bar() -> void:
-	var count := int(ceil(health / max_health * 8))
-	bar.text = "█".repeat(count) + "░".repeat(8 - count)
-	bar.modulate = Color(0.25, 1, 0.28) if health > 50 else Color(1, 0.25, 0.15)
+	if not is_instance_valid(bar):
+		return
+	var count := int(ceil(health / max_health * 8.0))
+	bar.text = "■".repeat(count) + "·".repeat(8 - count)
+	bar.modulate = Color(0.72, 0.74, 0.68) if health > 50.0 else Color(0.72, 0.42, 0.28)
