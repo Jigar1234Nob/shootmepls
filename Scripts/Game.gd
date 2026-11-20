@@ -1,6 +1,7 @@
 extends Node3D
 var player: CharacterBody3D
 var main_menu: Control
+var menu_layer: CanvasLayer
 var menu_status: Label
 var match_started := false
 var current_wave := 1
@@ -13,13 +14,13 @@ func _ready() -> void:
 	_show_start_screen()
 
 func _show_start_screen() -> void:
-	var layer := CanvasLayer.new()
-	layer.layer = 20
-	add_child(layer)
+	menu_layer = CanvasLayer.new()
+	menu_layer.layer = 20
+	add_child(menu_layer)
 	main_menu = Control.new()
 	main_menu.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	main_menu.process_mode = Node.PROCESS_MODE_ALWAYS
-	layer.add_child(main_menu)
+	menu_layer.add_child(main_menu)
 
 	var background := ColorRect.new()
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -164,9 +165,13 @@ func _menu_button(label_text: String, highlighted: bool) -> Button:
 
 func _show_controls() -> void:
 	main_menu.visible = false
+	var controls_layer := CanvasLayer.new()
+	controls_layer.layer = 21
+	controls_layer.name = "ControlsLayer"
+	add_child(controls_layer)
 	controls_page = Control.new()
 	controls_page.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(controls_page)
+	controls_layer.add_child(controls_page)
 	var background := ColorRect.new()
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	background.color = Color(0.018, 0.024, 0.025)
@@ -186,7 +191,8 @@ func _show_controls() -> void:
 	var back := _menu_button("BACK TO MAIN MENU", true)
 	back.position = Vector2(82, 610)
 	back.pressed.connect(func():
-		controls_page.queue_free()
+		controls_layer.queue_free()
+		controls_page = null
 		main_menu.visible = true
 	)
 	controls_page.add_child(back)
@@ -304,7 +310,7 @@ func _build_atmosphere() -> void:
 	sun.rotation_degrees = Vector3(-48, -28, 0)
 	sun.light_color = Color(0.82, 0.86, 0.91)
 	sun.light_energy = 0.72
-	sun.shadow_enabled = true
+	sun.shadow_enabled = false
 	add_child(sun)
 
 func _build_floor() -> void:
@@ -341,8 +347,8 @@ func _build_cover() -> void:
 	_add_static_box(Vector3(23, 0.8, -23), Vector3(3, 1.6, 3), Color(0.16, 0.18, 0.17))
 	_add_static_box(Vector3(21, 0.8, 19), Vector3(4, 1.6, 2.2), Color(0.20, 0.21, 0.19))
 	for x in [-27.0, 27.0]:
-		_add_static_box(Vector3(x, 4, 0), Vector3(0.22, 8, 0.22), Color(0.09, 0.10, 0.095))
-		_add_static_box(Vector3(x, 7.8, 0), Vector3(5, 0.22, 0.22), Color(0.09, 0.10, 0.095))
+		_add_static_box_emissive(Vector3(x, 4, 0), Vector3(0.22, 8, 0.22), Color(0.92, 0.98, 1.0), 2.8)
+		_add_static_box_emissive(Vector3(x, 7.8, 0), Vector3(5, 0.22, 0.22), Color(0.92, 0.98, 1.0), 2.8)
 
 func _build_map_details() -> void:
 	# Industrial lanes, container stacks and concrete dividers create readable combat routes.
@@ -358,13 +364,8 @@ func _build_map_details() -> void:
 	# Industrial light poles and cool daylight fill.
 	for pos in [Vector3(-34, 0, -34), Vector3(34, 0, -34), Vector3(-34, 0, 34), Vector3(34, 0, 34)]:
 		_add_static_box(pos + Vector3(0, 4.0, 0), Vector3(0.28, 8.0, 0.28), Color(0.085, 0.095, 0.095))
-		_add_static_box(pos + Vector3(0, 8.1, 0), Vector3(1.2, 0.18, 0.55), Color(0.11, 0.13, 0.13))
-		var lamp := OmniLight3D.new()
-		lamp.position = pos + Vector3(0, 7.7, 0)
-		lamp.light_color = Color(0.68, 0.78, 0.86)
-		lamp.light_energy = 0.45
-		lamp.omni_range = 13.0
-		add_child(lamp)
+		_add_static_box_emissive(pos + Vector3(0, 8.1, 0), Vector3(1.2, 0.18, 0.55), Color(0.88, 0.96, 1.0), 1.5)
+		# Emissive fixtures provide the industrial look without costly per-pixel point lights.
 	# Painted lane markings and restrained hazard blocks are visual-only.
 	for z in [-31.0, 31.0]:
 		for x in range(-24, 25, 6):
@@ -385,6 +386,28 @@ func _add_static_box(pos: Vector3, size: Vector3, color: Color) -> void:
 	box.size = size
 	mesh.mesh = box
 	mesh.material_override = _material(color, 0.12, 0.82)
+	body.add_child(mesh)
+	var collision := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = size
+	collision.shape = shape
+	body.add_child(collision)
+
+func _add_static_box_emissive(pos: Vector3, size: Vector3, color: Color, energy: float) -> void:
+	var body := StaticBody3D.new()
+	body.position = pos
+	add_child(body)
+	var mesh := MeshInstance3D.new()
+	var box := BoxMesh.new()
+	box.size = size
+	mesh.mesh = box
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = color
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.emission_enabled = true
+	mat.emission = color
+	mat.emission_energy_multiplier = energy
+	mesh.material_override = mat
 	body.add_child(mesh)
 	var collision := CollisionShape3D.new()
 	var shape := BoxShape3D.new()
