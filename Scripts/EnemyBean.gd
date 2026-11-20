@@ -17,8 +17,8 @@ func _ready() -> void:
 	health = max_health
 	var col := CollisionShape3D.new()
 	var shape := CapsuleShape3D.new()
-	shape.radius = 0.58
-	shape.height = 1.8
+	shape.radius = 0.58 * (1.55 if is_boss else 1.0)
+	shape.height = 1.8 * (1.55 if is_boss else 1.0)
 	col.shape = shape
 	col.position.y = 0.9
 	add_child(col)
@@ -36,7 +36,7 @@ func _ready() -> void:
 	body.material_override = mat
 	add_child(body)
 	bar = Label3D.new()
-	bar.position.y = 2.05
+	bar.position.y = 2.85 if is_boss else 2.05
 	bar.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	bar.font_size = 34
 	bar.outline_size = 7
