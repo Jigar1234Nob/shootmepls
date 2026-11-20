@@ -190,7 +190,7 @@ func _button(parent: Control, text_value: String, pos: Vector2, button_size: Vec
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(7)
 	button.add_theme_stylebox_override("normal", style)
-	var hover := style.duplicate()
+	var hover := style.duplicate() as StyleBoxFlat
 	hover.bg_color = Color(0.12, 0.38, 0.55)
 	button.add_theme_stylebox_override("hover", hover)
 	button.pressed.connect(callback)
