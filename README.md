@@ -30,9 +30,15 @@ Standard Godot gamepad mappings are used. The game reads the first connected con
 - Tap **JUMP** to jump.
 - Pause button opens the menu.
 
+## Visual direction
+- Muted industrial training yard with concrete cover, steel structures and subdued lighting.
+- Enemy beans are featureless bean-shaped silhouettes with no eyes, pupils, mouths or facial markings.
+- The first-person weapon is a dark low-profile rifle assembled from procedural 3D parts.
+- The HUD uses restrained charcoal and muted olive tones rather than bright arcade colours.
+
 ## Gameplay
-- Four walls enclose the grass arena.
-- Enemy beans chase and damage the player.
+- Concrete perimeter walls and waist-high cover form the combat arena.
+- Enemy beans pursue and damage the player.
 - Ammo pickups add 30 rounds; medkits restore 35 HP.
 - Player health starts at 100.
 - The HUD shows health, a live health bar, and ammunition.
