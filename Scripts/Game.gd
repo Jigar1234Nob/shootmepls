@@ -87,6 +87,6 @@ func _spawn_pickups() -> void:
 	]
 	for entry in positions:
 		var pickup = preload("res://Scripts/Pickup.gd").new()
-		pickup.kind = entry[1]
+		pickup.pickup_type = entry[1]
 		pickup.position = entry[0]
 		add_child(pickup)
