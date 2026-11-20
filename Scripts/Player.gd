@@ -1,208 +1,151 @@
 extends CharacterBody3D
 class_name FPSPlayer
 
-signal health_changed(value: int, maximum: int)
-signal ammo_changed(clip: int, reserve: int)
-signal died
-
 @export var walk_speed := 7.0
 @export var sprint_speed := 10.5
 @export var jump_velocity := 5.5
-@export var mouse_sensitivity := 0.0022
-@export var max_health := 100
-@export var damage := 25
-@export var fire_delay := 0.18
+@export var mouse_sensitivity := 0.0025
 
-var health := 100
-var clip_size := 12
-var ammo_in_clip := 12
-var reserve_ammo := 60
-var reloading := false
-var can_fire := true
 var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
-var head: Node3D
+var camera_pivot: Node3D
 var camera: Camera3D
-var weapon_root: Node3D
-var weapon_home := Vector3(0.34, -0.29, -0.58)
+var pitch := -0.12
+var bean_visual: Node3D
+var gun_visual: Node3D
 var bob_time := 0.0
-var recoil := 0.0
-var is_crouching := false
-var muzzle_flash: MeshInstance3D
 
 func _ready() -> void:
-	health = max_health
-	add_to_group("player")
-	var capsule := CapsuleShape3D.new()
-	capsule.radius = 0.38
-	capsule.height = 1.8
+	name = "PlayerBean"
+	_make_collision()
+	_make_bean()
+	_make_gun()
+	_make_camera()
+
+func _make_collision() -> void:
 	var collision := CollisionShape3D.new()
+	var capsule := CapsuleShape3D.new()
+	capsule.radius = 0.55
+	capsule.height = 2.0
 	collision.shape = capsule
-	collision.position.y = 0.9
+	collision.position.y = 1.0
 	add_child(collision)
-	head = Node3D.new()
-	head.name = "Head"
-	head.position.y = 1.58
-	add_child(head)
+
+func _make_bean() -> void:
+	bean_visual = Node3D.new()
+	bean_visual.name = "Bean"
+	add_child(bean_visual)
+
+	var body := MeshInstance3D.new()
+	var bean_mesh := SphereMesh.new()
+	bean_mesh.radius = 0.72
+	bean_mesh.height = 1.9
+	body.mesh = bean_mesh
+	body.position.y = 1.0
+	body.scale = Vector3(0.78, 1.0, 0.72)
+	var bean_mat := StandardMaterial3D.new()
+	bean_mat.albedo_color = Color(0.22, 0.78, 0.31)
+	bean_mat.roughness = 0.68
+	bean_mat.metallic = 0.0
+	body.material_override = bean_mat
+	bean_visual.add_child(body)
+
+	# Small simple eyes give the bean a readable front.
+	for x in [-0.19, 0.19]:
+		var eye := MeshInstance3D.new()
+		var eye_mesh := SphereMesh.new()
+		eye_mesh.radius = 0.075
+		eye_mesh.height = 0.15
+		eye.mesh = eye_mesh
+		eye.position = Vector3(x, 1.25, -0.49)
+		var eye_mat := StandardMaterial3D.new()
+		eye_mat.albedo_color = Color(0.98, 0.99, 1.0)
+		eye.material_override = eye_mat
+		bean_visual.add_child(eye)
+
+		var pupil := MeshInstance3D.new()
+		var pupil_mesh := SphereMesh.new()
+		pupil_mesh.radius = 0.034
+		pupil_mesh.height = 0.068
+		pupil.mesh = pupil_mesh
+		pupil.position = Vector3(x, 1.25, -0.55)
+		var pupil_mat := StandardMaterial3D.new()
+		pupil_mat.albedo_color = Color(0.025, 0.035, 0.045)
+		pupil.material_override = pupil_mat
+		bean_visual.add_child(pupil)
+
+func _make_gun() -> void:
+	gun_visual = Node3D.new()
+	gun_visual.name = "Gun"
+	gun_visual.position = Vector3(0.48, 1.05, -0.42)
+	bean_visual.add_child(gun_visual)
+
+	_add_gun_box(Vector3.ZERO, Vector3(0.20, 0.18, 0.52), Color(0.075, 0.09, 0.11))
+	_add_gun_box(Vector3(0.0, 0.02, -0.39), Vector3(0.085, 0.085, 0.34), Color(0.035, 0.045, 0.055))
+	_add_gun_box(Vector3(0.0, -0.16, 0.08), Vector3(0.13, 0.24, 0.16), Color(0.12, 0.14, 0.15))
+	_add_gun_box(Vector3(0.0, 0.12, -0.02), Vector3(0.12, 0.06, 0.24), Color(0.18, 0.2, 0.22))
+	_add_gun_box(Vector3(-0.015, 0.02, 0.27), Vector3(0.14, 0.14, 0.25), Color(0.09, 0.11, 0.13))
+
+func _add_gun_box(pos: Vector3, size: Vector3, color: Color) -> void:
+	var part := MeshInstance3D.new()
+	var box := BoxMesh.new()
+	box.size = size
+	part.mesh = box
+	part.position = pos
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = color
+	mat.metallic = 0.55
+	mat.roughness = 0.38
+	part.material_override = mat
+	gun_visual.add_child(part)
+
+func _make_camera() -> void:
+	camera_pivot = Node3D.new()
+	camera_pivot.name = "CameraPivot"
+	camera_pivot.position = Vector3(0, 1.35, 0)
+	add_child(camera_pivot)
+
 	camera = Camera3D.new()
+	camera.name = "ThirdPersonCamera"
+	camera.position = Vector3(0.0, 1.0, 5.8)
+	camera.rotation.x = pitch
+	camera.fov = 75.0
 	camera.current = true
-	camera.fov = 82.0
-	head.add_child(camera)
-	_build_viewmodel()
-	health_changed.emit(health, max_health)
-	ammo_changed.emit(ammo_in_clip, reserve_ammo)
-
-func _build_viewmodel() -> void:
-	weapon_root = Node3D.new()
-	weapon_root.name = "FirstPersonArmsAndGun"
-	weapon_root.position = weapon_home
-	camera.add_child(weapon_root)
-	# Sleeved forearm and hand.
-	_box(weapon_root, Vector3(-0.19, -0.20, -0.02), Vector3(0.16, 0.18, 0.48), Color(0.18, 0.27, 0.38))
-	_box(weapon_root, Vector3(-0.17, -0.15, -0.28), Vector3(0.17, 0.14, 0.20), Color(0.73, 0.48, 0.32))
-	# Generic compact rifle silhouette, built from textured-looking material blocks.
-	_box(weapon_root, Vector3(0.02, -0.04, -0.20), Vector3(0.19, 0.17, 0.52), Color(0.075, 0.09, 0.105))
-	_box(weapon_root, Vector3(0.02, 0.01, -0.53), Vector3(0.075, 0.075, 0.34), Color(0.035, 0.045, 0.055))
-	_box(weapon_root, Vector3(0.02, -0.15, -0.18), Vector3(0.12, 0.20, 0.16), Color(0.12, 0.14, 0.15))
-	_box(weapon_root, Vector3(0.02, 0.09, -0.17), Vector3(0.10, 0.055, 0.24), Color(0.16, 0.18, 0.19))
-	_box(weapon_root, Vector3(0.02, 0.12, -0.17), Vector3(0.055, 0.035, 0.13), Color(0.025, 0.03, 0.035))
-	_box(weapon_root, Vector3(0.02, -0.10, -0.12), Vector3(0.11, 0.12, 0.13), Color(0.055, 0.065, 0.075))
-	muzzle_flash = MeshInstance3D.new()
-	var flash_mesh := SphereMesh.new()
-	flash_mesh.radius = 0.075
-	flash_mesh.height = 0.15
-	muzzle_flash.mesh = flash_mesh
-	muzzle_flash.position = Vector3(0.02, -0.01, -0.76)
-	var flash_mat := StandardMaterial3D.new()
-	flash_mat.albedo_color = Color(1.0, 0.62, 0.12)
-	flash_mat.emission_enabled = true
-	flash_mat.emission = Color(1.0, 0.32, 0.04) * 2.5
-	muzzle_flash.material_override = flash_mat
-	muzzle_flash.visible = false
-	weapon_root.add_child(muzzle_flash)
-
-func _box(parent: Node3D, pos: Vector3, size: Vector3, color: Color) -> MeshInstance3D:
-	var mesh := BoxMesh.new()
-	mesh.size = size
-	var instance := MeshInstance3D.new()
-	instance.mesh = mesh
-	instance.position = pos
-	var mat := ShaderMaterial.new()
-	mat.shader = load("res://Materials/ProceduralSurface.gdshader")
-	mat.set_shader_parameter("base_color", color)
-	mat.set_shader_parameter("metallic_value", 0.55 if color.r < 0.2 else 0.05)
-	mat.set_shader_parameter("roughness_value", 0.42)
-	instance.material_override = mat
-	parent.add_child(instance)
-	return instance
+	camera_pivot.add_child(camera)
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-		rotate_y(-event.relative.x * mouse_sensitivity)
-		head.rotate_x(-event.relative.y * mouse_sensitivity)
-		head.rotation.x = clamp(head.rotation.x, -1.48, 1.48)
 	if event is InputEventMouseButton and event.pressed and Input.mouse_mode == Input.MOUSE_MODE_VISIBLE:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 		return
-	if event.is_action_pressed("reload"):
-		reload_weapon()
-	if event.is_action_pressed("fire") and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-		shoot()
+
+	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		rotate_y(-event.relative.x * mouse_sensitivity)
+		pitch = clamp(pitch - event.relative.y * mouse_sensitivity, -0.75, 0.35)
+		camera.rotation.x = pitch
+
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y -= gravity * delta
-	if Input.is_action_just_pressed("jump") and is_on_floor() and not is_crouching:
+
+	if Input.is_action_just_pressed("jump") and is_on_floor():
 		velocity.y = jump_velocity
-	if Input.is_action_just_pressed("crouch"):
-		is_crouching = not is_crouching
-		var tween := create_tween()
-		tween.tween_property(head, "position:y", 1.05 if is_crouching else 1.58, 0.16)
+
 	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_backward")
 	var direction := (transform.basis * Vector3(input_dir.x, 0, input_dir.y)).normalized()
 	var speed := sprint_speed if Input.is_action_pressed("sprint") else walk_speed
+
 	if direction != Vector3.ZERO:
 		velocity.x = direction.x * speed
 		velocity.z = direction.z * speed
-		bob_time += delta * (13.0 if speed == sprint_speed else 9.0)
+		bob_time += delta * 9.0
+		bean_visual.position.y = sin(bob_time) * 0.035
+		gun_visual.rotation.z = sin(bob_time) * 0.025
 	else:
-		velocity.x = move_toward(velocity.x, 0.0, walk_speed * 7.0 * delta)
-		velocity.z = move_toward(velocity.z, 0.0, walk_speed * 7.0 * delta)
-	if is_on_floor() and weapon_root:
-		weapon_root.position.y = weapon_home.y + (sin(bob_time) * 0.012 if direction != Vector3.ZERO else 0.0)
-	recoil = move_toward(recoil, 0.0, delta * 5.5)
-	if weapon_root:
-		weapon_root.rotation.x = -recoil
+		velocity.x = move_toward(velocity.x, 0.0, walk_speed * 8.0 * delta)
+		velocity.z = move_toward(velocity.z, 0.0, walk_speed * 8.0 * delta)
+		bean_visual.position.y = move_toward(bean_visual.position.y, 0.0, delta * 0.12)
+		gun_visual.rotation.z = move_toward(gun_visual.rotation.z, 0.0, delta * 0.1)
+
 	move_and_slide()
-
-func shoot() -> void:
-	if not can_fire or reloading or health <= 0:
-		return
-	if ammo_in_clip <= 0:
-		reload_weapon()
-		return
-	ammo_in_clip -= 1
-	ammo_changed.emit(ammo_in_clip, reserve_ammo)
-	recoil = 0.075
-	muzzle_flash.visible = true
-	muzzle_flash.scale = Vector3.ONE
-	var flash_tween := create_tween()
-	flash_tween.tween_property(muzzle_flash, "scale", Vector3(1.8, 1.8, 1.8), 0.055)
-	var flash_timer := get_tree().create_timer(0.075)
-	flash_timer.timeout.connect(func():
-		if is_instance_valid(muzzle_flash):
-			muzzle_flash.visible = false
-	)
-	can_fire = false
-	var timer := get_tree().create_timer(fire_delay)
-	timer.timeout.connect(func(): can_fire = true)
-	var origin := camera.global_position
-	var direction := -camera.global_transform.basis.z
-	var query := PhysicsRayQueryParameters3D.create(origin, origin + direction * 100.0)
-	query.exclude = [get_rid()]
-	var hit := get_world_3d().direct_space_state.intersect_ray(query)
-	if not hit.is_empty():
-		var target: Object = hit.collider
-		if target and target.has_method("take_damage"):
-			target.take_damage(damage)
-
-func reload_weapon() -> void:
-	if reloading or ammo_in_clip >= clip_size or reserve_ammo <= 0:
-		return
-	reloading = true
-	can_fire = false
-	var tween := create_tween()
-	tween.tween_property(weapon_root, "position:y", weapon_home.y - 0.20, 0.22)
-	tween.tween_property(weapon_root, "rotation:x", 0.28, 0.22)
-	tween.tween_interval(0.45)
-	tween.tween_property(weapon_root, "rotation:x", 0.0, 0.2)
-	tween.tween_property(weapon_root, "position:y", weapon_home.y, 0.2)
-	tween.finished.connect(func():
-		var needed := clip_size - ammo_in_clip
-		var loaded: int = mini(needed, reserve_ammo)
-		ammo_in_clip += loaded
-		reserve_ammo -= loaded
-		reloading = false
-		can_fire = true
-		ammo_changed.emit(ammo_in_clip, reserve_ammo)
-	)
-
-func take_damage(amount: int) -> void:
-	if health <= 0:
-		return
-	health = maxi(0, health - amount)
-	health_changed.emit(health, max_health)
-	if health == 0:
-		died.emit()
-
-func heal(amount: int) -> void:
-	health = mini(max_health, health + amount)
-	health_changed.emit(health, max_health)
-
-func add_ammo(amount: int) -> void:
-	reserve_ammo += amount
-	ammo_changed.emit(ammo_in_clip, reserve_ammo)
-
-func upgrade_damage(amount: int) -> void:
-	damage += amount
