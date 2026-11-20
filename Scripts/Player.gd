@@ -72,11 +72,10 @@ func _box(parent: Node3D, pos: Vector3, size: Vector3, color: Color) -> MeshInst
 	var instance := MeshInstance3D.new()
 	instance.mesh = mesh
 	instance.position = pos
-	var mat := ShaderMaterial.new()
-	mat.shader = load("res://Materials/ProceduralSurface.gdshader")
-	mat.set_shader_parameter("base_color", color)
-	mat.set_shader_parameter("metallic_value", 0.55 if color.r < 0.2 else 0.05)
-	mat.set_shader_parameter("roughness_value", 0.42)
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = color
+	mat.metallic = 0.55 if color.r < 0.2 else 0.05
+	mat.roughness = 0.42
 	instance.material_override = mat
 	parent.add_child(instance)
 	return instance

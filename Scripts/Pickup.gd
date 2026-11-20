@@ -7,7 +7,6 @@ var base_y := 0.5
 var age := 0.0
 
 func _ready() -> void:
-	add_to_group("pickups")
 	collision_layer = 0
 	collision_mask = 1
 	var shape := CollisionShape3D.new()
