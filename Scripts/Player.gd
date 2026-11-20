@@ -80,20 +80,20 @@ func _make_gun() -> void:
 	gun_visual = Node3D.new()
 	gun_visual.position = gun_home
 	camera.add_child(gun_visual)
-	_add_box(Vector3(0, -0.015, 0), Vector3(0.22, 0.18, 0.48), Color(0.075, 0.09, 0.12))
-	_add_box(Vector3(0, 0.025, -0.32), Vector3(0.085, 0.085, 0.34), Color(0.035, 0.045, 0.06))
-	_add_box(Vector3(0, 0.105, -0.12), Vector3(0.12, 0.035, 0.25), Color(0.12, 0.55, 0.95))
-	_add_box(Vector3(0, -0.14, 0.07), Vector3(0.13, 0.22, 0.15), Color(0.12, 0.14, 0.16))
-	var hand := MeshInstance3D.new()
-	var hand_mesh := SphereMesh.new()
-	hand_mesh.radius = 0.13
-	hand_mesh.height = 0.25
-	hand.mesh = hand_mesh
-	hand.position = Vector3(-0.025, -0.12, 0.18)
-	var hand_mat := StandardMaterial3D.new()
-	hand_mat.albedo_color = Color(0.22, 0.78, 0.31)
-	hand.material_override = hand_mat
-	gun_visual.add_child(hand)
+	# Procedural compact rifle model with stock, receiver, barrel, magazine and sights.
+	var steel := Color(0.075, 0.082, 0.078)
+	var polymer := Color(0.035, 0.040, 0.038)
+	var edge := Color(0.13, 0.14, 0.13)
+	_add_box(Vector3(0, -0.015, -0.02), Vector3(0.20, 0.17, 0.43), steel)
+	_add_box(Vector3(0, 0.005, -0.34), Vector3(0.105, 0.105, 0.48), polymer)
+	_add_box(Vector3(0, -0.015, -0.64), Vector3(0.075, 0.075, 0.22), steel)
+	_add_box(Vector3(0, -0.13, 0.12), Vector3(0.16, 0.13, 0.30), polymer)
+	_add_box(Vector3(0, -0.18, -0.03), Vector3(0.115, 0.25, 0.15), polymer)
+	_add_box(Vector3(0, 0.105, -0.27), Vector3(0.13, 0.055, 0.24), edge)
+	_add_box(Vector3(0, 0.15, -0.27), Vector3(0.085, 0.045, 0.14), polymer)
+	_add_box(Vector3(0, 0.115, -0.02), Vector3(0.035, 0.045, 0.075), edge)
+	_add_box(Vector3(0, 0.095, -0.59), Vector3(0.025, 0.055, 0.045), edge)
+	_add_box(Vector3(0, -0.105, -0.24), Vector3(0.105, 0.23, 0.16), polymer)
 
 func _add_box(pos: Vector3, size: Vector3, color: Color) -> void:
 	var part := MeshInstance3D.new()
@@ -120,14 +120,14 @@ func _make_hud() -> void:
 	var top_panel := PanelContainer.new()
 	top_panel.position = Vector2(22, 20)
 	top_panel.custom_minimum_size = Vector2(260, 82)
-	top_panel.add_theme_stylebox_override("panel", _panel_style(Color(0.025, 0.045, 0.075, 0.88), Color(0.18, 0.45, 0.68, 0.8)))
+	top_panel.add_theme_stylebox_override("panel", _panel_style(Color(0.025, 0.03, 0.028, 0.92), Color(0.34, 0.35, 0.31, 0.8)))
 	root.add_child(top_panel)
 	var stats := VBoxContainer.new()
 	stats.add_theme_constant_override("separation", 7)
 	top_panel.add_child(stats)
 	var health_title := Label.new()
 	health_title.text = "VITALS"
-	health_title.add_theme_color_override("font_color", Color(0.56, 0.76, 0.9))
+	health_title.add_theme_color_override("font_color", Color(0.66, 0.67, 0.60))
 	health_title.add_theme_font_size_override("font_size", 12)
 	stats.add_child(health_title)
 	hud = Label.new()
@@ -139,7 +139,7 @@ func _make_hud() -> void:
 	health_bar.color = Color(0.12, 0.17, 0.22)
 	stats.add_child(health_bar)
 	health_fill = ColorRect.new()
-	health_fill.color = Color(0.25, 0.88, 0.48)
+	health_fill.color = Color(0.58, 0.61, 0.43)
 	health_fill.size = Vector2(220, 7)
 	health_bar.add_child(health_fill)
 
@@ -147,19 +147,19 @@ func _make_hud() -> void:
 	ammo_panel.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	ammo_panel.position = Vector2(-220, -92)
 	ammo_panel.custom_minimum_size = Vector2(195, 70)
-	ammo_panel.add_theme_stylebox_override("panel", _panel_style(Color(0.025, 0.045, 0.075, 0.9), Color(0.18, 0.45, 0.68, 0.8)))
+	ammo_panel.add_theme_stylebox_override("panel", _panel_style(Color(0.025, 0.03, 0.028, 0.94), Color(0.34, 0.35, 0.31, 0.8)))
 	root.add_child(ammo_panel)
 	ammo_label = Label.new()
 	ammo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	ammo_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	ammo_label.add_theme_font_size_override("font_size", 25)
-	ammo_label.add_theme_color_override("font_color", Color(0.95, 0.97, 1))
+	ammo_label.add_theme_color_override("font_color", Color(0.84, 0.84, 0.78))
 	ammo_panel.add_child(ammo_label)
 
 	var cross := Label.new()
 	cross.text = "＋"
 	cross.add_theme_font_size_override("font_size", 25)
-	cross.add_theme_color_override("font_color", Color(0.9, 0.98, 1, 0.92))
+	cross.add_theme_color_override("font_color", Color(0.82, 0.83, 0.76, 0.92))
 	cross.set_anchors_preset(Control.PRESET_CENTER)
 	cross.position = Vector2(-10, -19)
 	root.add_child(cross)
@@ -201,9 +201,9 @@ func _add_touch_controls(root: Control) -> void:
 	stick.custom_minimum_size = Vector2(170, 160)
 	stick.mouse_filter = Control.MOUSE_FILTER_STOP
 	stick.draw.connect(func():
-		stick.draw_circle(Vector2(85, 80), 72, Color(0.04, 0.08, 0.12, 0.42))
-		stick.draw_arc(Vector2(85, 80), 72, 0, TAU, 48, Color(0.55, 0.75, 0.9, 0.5), 2)
-		stick.draw_circle(Vector2(85 + mobile_move.x * 45, 80 + mobile_move.y * 45), 28, Color(0.28, 0.72, 1, 0.72))
+		stick.draw_circle(Vector2(85, 80), 72, Color(0.025, 0.03, 0.028, 0.62))
+		stick.draw_arc(Vector2(85, 80), 72, 0, TAU, 48, Color(0.52, 0.55, 0.49, 0.5), 2)
+		stick.draw_circle(Vector2(85 + mobile_move.x * 45, 80 + mobile_move.y * 45), 28, Color(0.52, 0.55, 0.46, 0.72))
 	)
 	stick.gui_input.connect(func(event):
 		if event is InputEventScreenTouch:
@@ -252,7 +252,7 @@ func _make_pause_menu(layer: CanvasLayer) -> void:
 	panel.custom_minimum_size = Vector2(330, 250)
 	panel.set_anchors_preset(Control.PRESET_CENTER)
 	panel.position = Vector2(-165, -125)
-	panel.add_theme_stylebox_override("panel", _panel_style(Color(0.035, 0.065, 0.1, 0.98), Color(0.2, 0.55, 0.82)))
+	panel.add_theme_stylebox_override("panel", _panel_style(Color(0.035, 0.04, 0.035, 0.98), Color(0.42, 0.43, 0.37)))
 	pause_layer.add_child(panel)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 12)
@@ -261,13 +261,13 @@ func _make_pause_menu(layer: CanvasLayer) -> void:
 	title.text = "PAUSED"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 27)
-	title.add_theme_color_override("font_color", Color(0.85, 0.94, 1))
+	title.add_theme_color_override("font_color", Color(0.82, 0.83, 0.76))
 	column.add_child(title)
 	var hint := Label.new()
 	hint.text = "Take a breather. The beans won't."
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.add_theme_font_size_override("font_size", 12)
-	hint.add_theme_color_override("font_color", Color(0.6, 0.72, 0.82))
+	hint.add_theme_color_override("font_color", Color(0.62, 0.63, 0.57))
 	column.add_child(hint)
 	var resume := Button.new()
 	resume.text = "RESUME  ·  ESC"
@@ -394,6 +394,6 @@ func _update_hud() -> void:
 		hud.text = "HEALTH   %d%%" % int(health)
 	if is_instance_valid(health_fill):
 		health_fill.size.x = 220.0 * (health / max_health)
-		health_fill.color = Color(0.25, 0.88, 0.48) if health > 35 else Color(1.0, 0.32, 0.22)
+		health_fill.color = Color(0.58, 0.61, 0.43) if health > 35 else Color(0.68, 0.39, 0.27)
 	if is_instance_valid(ammo_label):
 		ammo_label.text = "AMMO   %03d" % ammo
