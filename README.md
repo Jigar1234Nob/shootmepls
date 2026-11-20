@@ -82,3 +82,15 @@ On macOS, generate the base64 values with `base64 -i Certificate.p12 | pbcopy` a
 4. When the run finishes, open its summary and download the `ShootMePls-iOS-IPA` artifact.
 
 The workflow also runs on relevant pushes to `main`. This is an Ad Hoc signed IPA, not an App Store submission. The provisioning profile must include the target device UDIDs. Godot's iOS exporter requires macOS/Xcode and matching export templates; see the [official Godot iOS export guide](https://docs.godotengine.org/en/4.3/tutorials/export/exporting_for_ios.html).
+
+
+## Performance and visual polish update
+
+- Reduced rendering overhead by disabling real-time directional shadows and removing the four dynamic point lights from the industrial yard.
+- Perimeter posts and overhead bars now use bright emissive white materials.
+- Enemy beans are featureless neon-red silhouettes with no facial details.
+- Enemy steering refreshes on staggered short intervals instead of recalculating target direction in lockstep every physics frame. Beans pursue, strafe, and continue patrolling if the player is temporarily unavailable.
+- Physics interpolation is enabled to improve perceived movement smoothness.
+- Main menu, controls page, gameplay HUD, pause menu, and settings are rendered in screen-space UI layers so they remain attached to the display rather than the 3D world.
+
+These are source-level changes. The project still needs to be opened and profiled in Godot on target hardware to confirm actual frame-time improvements.
